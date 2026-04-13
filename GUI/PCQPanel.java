@@ -1,0 +1,91 @@
+//$Id: PCQPanel.java,v 1.5 1996/11/13 12:48:25 dubuc Exp $
+
+/*
+$Log: PCQPanel.java,v $
+Revision 1.5  1996/11/13 12:48:25  dubuc
+Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+
+*/
+
+package GUI;
+
+import java.awt.*;
+
+public class PCQPanel extends Panel {
+
+	static String [] etiq = {"PC    ","PC-I  ","PC-II ","PC-III","PCR   "};
+
+	public TextField [] tf = new TextField[5];
+	public PointCanvas [] pc = new PointCanvas[5];
+	Label [] lb = new Label[5];
+
+	public PCQPanel() {
+		this.setLayout(new GridLayout(5,1,0,0));
+		this.setFont(new Font("Fixed",Font.BOLD,12));
+		Panel p;
+		for (int i = 0; i < 5; i ++ ) {
+			lb[i] = new Label(etiq[i],Label.LEFT);
+			tf[i] = new TextField(16);
+			tf[i].setForeground(Color.black);
+			tf[i].setBackground(Color.white);
+			tf[i].setFont(new Font("Fixed",Font.PLAIN,12));
+			tf[i].setEditable(false);
+			p = new Panel();
+			p.setLayout(new FlowLayout(FlowLayout.CENTER,0,0));
+			p.add(lb[i]);
+			p.add(tf[i]);
+			if(i < 4) {
+				pc[i] = new PointCanvas();
+				p.add(pc[i]);
+			}
+			else {
+				pc[i] = new PointCanvas(false);
+				p.add(pc[i]);
+			}
+			this.add(p);
+		}
+	}
+}
+
+class PointCanvas extends Canvas {
+
+	Dimension d;
+	public boolean active;
+	public boolean show;
+
+	PointCanvas(){
+		d = new Dimension(30,30);
+		this.setBackground(Color.gray);
+		show = true;
+		active = false;
+	}
+
+	PointCanvas(boolean s){
+		d = new Dimension(30,30);
+		show = s;
+		if (show) this.setBackground(Color.gray);
+		active = false;
+	}
+
+	public void paint(Graphics g){
+		if(show) {
+			g.setColor(Color.black);
+			g.drawRect(0,0,d.width - 1, d.height - 1);
+			if(active)
+				g.setColor(Color.red);
+			else 
+				g.setColor(Color.white);
+			g.fillArc(10,10,10,10,0,360);
+		}
+	}
+
+	public Dimension minimumSize() {
+		return d;
+	}
+
+	public Dimension preferredSize() {
+		return minimumSize();
+	}
+
+}

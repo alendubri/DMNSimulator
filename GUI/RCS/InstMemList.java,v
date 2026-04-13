@@ -1,0 +1,87 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.5
+date	96.11.13.12.48.25;	author dubuc;	state Exp;
+branches;
+next	;
+
+
+desc
+@Implementacion de la lista para mostrar la memoria de instrucciones
+@
+
+
+1.5
+log
+@Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+@
+text
+@//$Id$
+
+/*
+$Log$
+*/
+
+package GUI;
+
+import java.awt.*;
+import memory.*;
+import binContainer.*;
+
+public class InstMemList extends List {
+
+	InstMemory iMem;
+	String [] nmeMem;
+	int size;
+	long tact, tini;
+
+	public InstMemList(InstMemory im,String [] nme) {
+		super();
+		iMem = im;
+		nmeMem = nme;
+		size = iMem.getCapMemory();
+		for(int i = 0; i < size; i++){
+			Byte d = new Byte(i);
+			this.addItem(d.toHexString() + ":" + nmeMem[i]);
+		}
+	}
+
+	public void refreshItemsDec() {
+		for(int i = 0; i < size; i++){
+			Word b = iMem.readMemory(i);
+			Byte d = new Byte(i);
+			this.replaceItem(d.toHexString() + ":" + b.toString(),i);
+		}
+	}
+
+	public void refreshItemsHex() {
+		for(int i = 0; i < size; i++){
+			Word b = iMem.readMemory(i);
+			Byte d = new Byte(i);
+			this.replaceItem(d.toHexString() + ":" + b.toHexString(),i);
+		}
+	}
+
+	public void refreshItemsBin() {
+		for(int i = 0; i < size; i++){
+			Word b = iMem.readMemory(i);
+			Byte d = new Byte(i);
+			this.replaceItem(d.toHexString() + ":" + b.toBinaryString(),i);
+		}
+	}
+
+	public void refreshItemsNme() {
+		for(int i = 0; i < size; i++){
+			Byte d = new Byte(i);
+			this.replaceItem(d.toHexString() + ":" + nmeMem[i],i);
+		}
+	}
+
+}
+@

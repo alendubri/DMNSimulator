@@ -1,0 +1,350 @@
+//$id$
+
+/*
+$Log: DMNFigPanel.java,v $
+Revision 1.6  1996/11/22 16:50:52  dubuc
+Cambio en el Nivel de la Arquitectura
+
+Revision 1.5  1996/11/13 12:48:25  dubuc
+Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+
+*/
+
+package GUI;
+
+import java.awt.*;
+
+public class DMNFigPanel extends Panel {
+
+	RegisterPanel register;
+	DMNCanvasSup cSup;
+	DMNCanvasInf cInf;
+	DMNCanvasSide [] cSid = new DMNCanvasSide[2];
+	Panel [] panels = new Panel[5];
+
+	public DMNFigPanel(RegisterPanel r) {
+		register = r;
+		this.setInitialPanelGeometry();
+		this.setInitialComponents();
+	}
+
+	private void setInitialPanelGeometry() {
+		GridBagLayout gridbag = new GridBagLayout();
+		GridBagConstraints c = new GridBagConstraints();
+		setLayout(gridbag);
+
+		c.fill = GridBagConstraints.BOTH;
+
+		c.weightx = 1.0;
+		c.weighty = 1.0;
+		c.insets = new Insets(0,0,0,0);
+		c.gridheight = 1;
+
+		c.gridwidth = GridBagConstraints.REMAINDER;
+		panels[0] = addPanel(gridbag,c);
+		c.gridwidth = 1;
+		panels[1] = addPanel(gridbag,c);
+		panels[2] = addPanel(gridbag,c);
+		c.gridwidth = GridBagConstraints.REMAINDER;
+		panels[3] = addPanel(gridbag,c);
+		panels[4] = addPanel(gridbag,c);
+	}
+
+	private void setInitialComponents(){
+		for(int i = 0; i < 5; i++)
+			panels[i].setLayout(new BorderLayout());
+		panels[0].add("Center",cSup = new DMNCanvasSup());
+		panels[1].add("Center",cSid[0] = new DMNCanvasSide(DMNCanvasSide.LEFT));
+		panels[2].setBackground(Color.white);
+		panels[2].add("Center",register);
+		panels[3].add("Center",cSid[1] = new DMNCanvasSide(DMNCanvasSide.RIGTH));
+		panels[4].add("Center",cInf = new DMNCanvasInf());
+	}
+
+	private Panel addPanel(
+				GridBagLayout gridbag,
+				GridBagConstraints c) {
+		Panel panel = new Panel();
+		gridbag.setConstraints(panel, c);
+		add(panel);
+		return panel;
+	}
+
+	public void paint(Graphics g) {
+		cSid[1].repaint();
+		cInf.repaint();
+	}
+
+	public void putX(String s) {
+		cInf.xSt = s;
+	}
+	public void putA(String s) {
+		cInf.aSt = s;
+	}
+	public void putB(String s) {
+		cInf.bSt = s;
+	}
+
+	public void depL1(boolean b) {
+		cInf.depL1 = b;
+	}
+
+	public void depL2(boolean b) {
+		cInf.depL2 = b;
+	}
+
+	public void intrEn(boolean b) {
+		cSid[1].intrEn = b;
+	}
+
+}
+
+class DMNCanvasSup extends Canvas {
+
+	Dimension d;
+
+	DMNCanvasSup(){
+		d = new Dimension(250,40);
+		this.setBackground(Color.white);
+	}
+
+	public void paint(Graphics g) {
+		g.drawLine(0,d.height-1,0,0);
+		g.drawLine(0,0,d.width-1,0);
+		g.drawLine(d.width-1,0,d.width-1,d.height-1);
+
+		g.drawLine(2,d.height-1,2,2);
+		g.drawLine(2,2,d.width-3,2);
+		g.drawLine(d.width-3,2,d.width-3,d.height-1);
+
+		g.drawLine(125,20,125,40);
+		g.fillPolygon(Arrow.def(125,40,Arrow.DOWN));
+
+		g.drawLine(25,d.height-1,25,20);
+		g.drawLine(25,20,125,20);
+
+	}
+
+	public Dimension minimumSize() {
+		return d;
+	}
+
+	public Dimension preferredSize() {
+		return minimumSize();
+	}
+}
+
+class DMNCanvasInf extends Canvas {
+
+	Dimension d;
+	FontMetrics fm;
+	Color fg,bg;
+
+	public String aSt, bSt, xSt;
+	public boolean depL1, depL2;
+
+	int [][] flPos = {{70,0,70,30,Arrow.DOWN},
+			  {90,0,90,30,Arrow.DOWN},
+			  {180,0,180,30,Arrow.DOWN},
+			  {250,40,200,40,Arrow.LEFT},
+			  {88,60,88,70,Arrow.DOWN},
+			  {162,60,162,70,Arrow.DOWN},
+			  {88,100,88,130,Arrow.DOWN},
+			  {162,100,162,130,Arrow.DOWN},
+			  {88,160,88,190,Arrow.DOWN},
+			  {162,160,162,190,Arrow.DOWN},
+			  {125,240,125,250,Arrow.DOWN},
+			  {250,215,175,215,Arrow.LEFT},
+			  {250,50,200,50,Arrow.LEFT},
+			  {50,15,50,30,Arrow.DOWN},
+			  {50,115,50,130,Arrow.DOWN}
+			 };
+
+	DMNCanvasInf(){
+		d = new Dimension(250,290);
+		this.setBackground(Color.white);
+		bg = this.getBackground();
+	}
+
+	public void paint(Graphics g) {
+		fg = g.getColor();
+		update(g);
+	}
+
+	public void update(Graphics g) {
+		g.drawLine(0,0,0,d.height -1);
+		g.drawLine(0,d.height -1,d.width -1,d.height -1);
+		g.drawLine(d.width -1,d.height -1,d.width -1,0);
+
+		g.drawLine(2,0,2,d.height -3);
+		g.drawLine(2,d.height -3,d.width -3,d.height -3);
+		g.drawLine(d.width -3,d.height -3,d.width -3,0);
+
+		g.setFont(new Font("Fixed",Font.PLAIN,10));
+
+		if (depL1) 
+			g.setColor(Color.blue);
+		else 
+			g.setColor(bg);
+		g.fillRect(51,31,149,29);
+		g.setColor(fg);
+		drawString(g,"Dependency Level-2",50,30,150,30);
+
+		if (depL2) 
+			g.setColor(Color.red);
+		else 
+			g.setColor(bg);
+		g.fillRect(51,131,149,29);
+		g.setColor(fg);
+		drawString(g,"Dependency Level-1",50,130,150,30);
+
+		if(aSt != null){
+			g.setColor(bg);
+			g.fillRect(51,71,73,28);
+			g.setColor(fg);
+			drawString(g,"A",35,70,15,30);
+			drawString(g,aSt,50,70,75,30);
+		}
+		if(bSt != null){
+			g.setColor(bg);
+			g.fillRect(126,71,73,28);
+			g.setColor(fg);
+			drawString(g,"B",200,70,15,30);
+			drawString(g,bSt,125,70,75,30);
+		}
+		if(xSt != null){
+			g.setColor(bg);
+			g.fillRect(51,251,148,18);
+			g.setColor(fg);
+			drawString(g,"X",200,250,15,20);
+			drawString(g,xSt,50,250,150,20);
+		}
+		g.setFont(new Font("Fixed",Font.PLAIN,12));
+		drawString(g,"ALL-U",50,190,150,50);
+
+		g.drawRect(50,30,150,30);
+		g.drawRect(50,70,150,30);
+		g.drawLine(125,70,125,100);
+		g.drawRect(50,130,150,30);
+		drawALU(g,50,190);
+		g.drawRect(50,250,150,20);
+
+		for(int i = 0; i < 15; i++)
+			flecha(g,flPos[i]);
+
+		drawString(g,"RSA",220,20,30,20);
+		drawString(g,"RSB",220,55,30,20);
+		drawString(g,"EX",220,195,30,20);
+
+		g.drawLine(125,270,125,280);
+		g.drawLine(125,280,25,280);
+		g.drawLine(25,280,25,0);
+		g.drawLine(25,15,50,15);
+		g.drawLine(25,115,50,115);
+
+	}
+
+	private void drawString(Graphics g,String st,int x,int y,int w, int h) {
+		fm = g.getFontMetrics();
+		int mpv = fm.getAscent()/2 - fm.getDescent()/2;
+		int mph = w/2 - fm.stringWidth(st)/2;
+		g.drawString(st,x+mph,y+h/2+mpv);
+	}
+
+	private void flecha(Graphics g, int [] pts) {
+		g.drawLine(pts[0],pts[1],pts[2],pts[3]);
+		g.fillPolygon(Arrow.def(pts[2],pts[3],pts[4]));
+	}
+
+	private void drawALU(Graphics g,int x, int y) {
+		g.drawLine(x,y,x+65,y);
+		g.drawLine(x+65,y,x+75,y+10);
+		g.drawLine(x+75,y+10,x+85,y);
+		g.drawLine(x+85,y,x+150,y);
+		g.drawLine(x,y,x+50,y+50);
+		g.drawLine(x+150,y,x+100,y+50);
+		g.drawLine(x+50,y+50,x+100,y+50);
+	}
+
+	public Dimension minimumSize() {
+		return d;
+	}
+
+	public Dimension preferredSize() {
+		return minimumSize();
+	}
+}
+
+class DMNCanvasSide extends Canvas {
+
+	Dimension d;
+	final static int LEFT	= 3;
+	final static int RIGTH	= 4;
+	int framePos;
+	public boolean intrEn;
+
+	DMNCanvasSide(int f){
+		framePos = f;
+		d = new Dimension(50,190);
+		this.setBackground(Color.white);
+		intrEn = false;
+	}
+
+	public void paint(Graphics g) {
+		update(g);
+	}
+
+	public void update(Graphics g) {
+		if(framePos == LEFT) {
+			g.drawLine(0,0,0,d.height -1);
+			g.drawLine(2,0,2,d.height -1);
+
+			g.drawLine(25,0,25,d.height -1);
+		}
+		if(framePos == RIGTH) {
+			g.drawLine(d.width -1,0,d.width -1,d.height -1);
+			g.drawLine(d.width -3,0,d.width -3,d.height -1);
+
+			g.drawLine(50,75,0,75);
+			g.fillPolygon(Arrow.def(0,75,Arrow.LEFT));
+
+			g.setFont(new Font("Fixed",Font.PLAIN,10));
+			drawString(g,"WB",20,55,30,20);
+
+			if (intrEn) {
+				g.setColor(Color.red);
+				g.fillRect(26,106,15,15);
+				g.setColor(Color.yellow);
+				drawString(g,"1",26,106,15,15);
+			}
+			else {
+				g.setColor(Color.white);
+				g.fillRect(26,106,15,15);
+			}
+
+			g.setColor(Color.black);
+			g.drawRect(25,105,16,16);
+			g.drawLine(25,113,0,113);
+			g.fillPolygon(Arrow.def(0,113,Arrow.LEFT));
+			drawString(g,"INTR",15,121,35,20);
+
+		}
+	}
+
+	private void drawString(Graphics g,String st,int x,int y,int w, int h) {
+		FontMetrics fm = g.getFontMetrics();
+		int mpv = fm.getAscent()/2 - fm.getDescent()/2;
+		int mph = w/2 - fm.stringWidth(st)/2;
+		g.drawString(st,x+mph,y+h/2+mpv);
+	}
+
+	public Dimension minimumSize() {
+		return d;
+	}
+
+	public Dimension preferredSize() {
+		return minimumSize();
+	}
+}
+

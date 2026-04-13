@@ -1,0 +1,66 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.5
+date	96.11.13.13.10.57;	author dubuc;	state Exp;
+branches;
+next	;
+
+
+desc
+@Clase que Implementa metodos para el Dibujo de flechas en el DMNFigPanel
+@
+
+
+1.5
+log
+@Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+@
+text
+@//$Id$
+
+/*
+$Log$
+*/
+
+package GUI;
+
+import java.awt.Polygon;
+
+public class Arrow {
+
+	final static int UP		= 1;
+	final static int DOWN	= 2;
+	final static int LEFT	= 3;
+	final static int RIGTH	= 4;
+
+	public static Polygon def(int x, int y,int dir) {
+
+		switch(dir) {
+			case UP:
+				int [] xu = {x,x-5,x+5};
+				int [] yu = {y,y+5,y+5};
+				return (new Polygon(xu,yu,3));
+			case DOWN:
+				int [] xd = {x,x-5,x+5};
+				int [] yd = {y,y-5,y-5};
+				return (new Polygon(xd,yd,3));
+			case LEFT:
+				int [] xl = {x,x+5,x+5};
+				int [] yl = {y,y+5,y-5};
+				return (new Polygon(xl,yl,3));
+			case RIGTH:
+				int [] xr = {x,x-5,x-5};
+				int [] yr = {y,y+5,y-5};
+				return (new Polygon(xr,yr,3));
+			default:
+				return null;
+		}
+	}
+}
+@

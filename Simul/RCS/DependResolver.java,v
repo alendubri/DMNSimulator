@@ -1,0 +1,234 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.5
+date	96.11.13.13.50.27;	author dubuc;	state Exp;
+branches
+	1.5.1.1;
+next	;
+
+1.5.1.1
+date	96.11.14.21.21.15;	author dubuc;	state Exp;
+branches;
+next	;
+
+
+desc
+@Implementacion de la logica de dependencia de datos.
+@
+
+
+1.5
+log
+@Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+@
+text
+@//$Id$
+
+/*
+$Log$
+*/
+
+package Simul;
+
+import binContainer.*;
+import memory.*;
+
+public class DependResolver {
+
+	RegFileMemory rFile;
+	public Byte [] aReg = new Byte[2];
+	public Byte [] bReg = new Byte[2];
+	public Nibble sla, slb;
+	ByteQueue rldi;
+	NibbleQueue wbQueue;
+	Byte xReg;
+	public boolean depL1, depL2;
+	public boolean depAL1, depAL2;
+	public boolean depBL1, depBL2;
+
+	public DependResolver() {
+		sla = new Nibble();
+		slb = new Nibble();
+		for(int i = 0; i < 2; i++) {
+			aReg[i] = new Byte();
+			bReg[i] = new Byte();
+		}
+		depL1 = depL2 = false;
+		depAL1 = depAL2 = depBL1 = depBL2 = false;
+	}
+
+	public void reset() {
+		sla.clearValue();
+		slb.clearValue();
+		for(int i = 0; i < 2; i++) {
+			aReg[i].clearValue();
+			bReg[i].clearValue();
+		}
+		depL1 = depL2 = false;
+		depAL1 = depAL2 = depBL1 = depBL2 = false;
+	}
+
+	public void fetchSelector(Byte b) {
+		sla.setValue((BinConvert.byteToUpperNibble(b)).intValue());
+		slb.setValue((BinConvert.byteToLowerNibble(b)).intValue());
+	}
+
+	public void setParameters(
+		RegFileMemory rf,
+		Byte xr,
+		ByteQueue rldiq,
+		NibbleQueue wbq,
+		Byte sByte)
+	{
+		this.setParameters(rf,xr,rldiq,wbq);
+		this.fetchSelector(sByte);
+	}
+
+	public void setParameters(
+		RegFileMemory rf,
+		Byte xr,
+		ByteQueue rldiq,
+		NibbleQueue wbq)
+	{
+		this.rFile = rf;
+		this.xReg = xr;
+		this.rldi = rldiq;
+		this.wbQueue = wbq;
+	}
+	public void resolve() {
+		depL1 = depL2 = false;
+		depAL1 = depAL2 = depBL1 = depBL2 = false;
+		// A[1] (Dependencia de Nivel 1 en A)
+		if((wbQueue.seeTopQueue()).intValue() != (BinConvert.byteToUpperNibble(rldi.seeElement(0))).intValue()){
+			aReg[1].setValue(aReg[0].intValue());
+		}
+		else {
+			aReg[1].setValue(xReg.intValue());
+			depAL2 = true;
+		}
+		
+		// B[1] (Dependencia de Nivel 1 en B)
+		if((wbQueue.seeTopQueue()).intValue() != (BinConvert.byteToLowerNibble(rldi.seeElement(0))).intValue()){
+			bReg[1].setValue(bReg[0].intValue());
+		}
+		else{
+			bReg[1].setValue(xReg.intValue());
+			depBL2 = true;
+		}
+
+		depL2 = depAL2 || depBL2;
+
+		// A[0] (Dependencia de Nivel 2 en A)
+		if((wbQueue.seeTopQueue()).intValue() != sla.intValue()){
+			aReg[0].setValue((rFile.readMemory(sla.intValue())).intValue());
+		}
+		else{
+			aReg[0].setValue(xReg.intValue());
+			depAL1 = true;
+		}
+
+		// B[0] (Dependencia de Nivel 2 en B)
+		if((wbQueue.seeTopQueue()).intValue() != slb.intValue()){
+			bReg[0].setValue((rFile.readMemory(slb.intValue())).intValue());
+		}
+		else{
+			bReg[0].setValue(xReg.intValue());
+			depBL1 = true;
+		}
+
+		depL1 = depAL1 || depBL1;
+	}
+
+	public void resolve(
+		RegFileMemory rf,
+		Byte xr,
+		ByteQueue rldiq,
+		NibbleQueue wbq)
+	{
+		this.setParameters(rf,xr,rldiq,wbq);
+		this.resolve();
+	}
+		
+	public void resolve(
+		RegFileMemory rf,
+		Byte xr,
+		ByteQueue rldiq,
+		NibbleQueue wbq,
+		Byte sByte)
+	{
+		this.setParameters(rf,xr,rldiq,wbq);
+		this.fetchSelector(sByte);
+		this.resolve();
+	}
+}
+@
+
+
+1.5.1.1
+log
+@Cambio menor para evitar resolver dependencia de datos en R0.
+@
+text
+@d1 1
+a1 1
+//$Id: DependResolver.java,v 1.5 1996/11/13 13:50:27 dubuc Exp dubuc $
+d4 1
+a4 5
+$Log: DependResolver.java,v $
+Revision 1.5  1996/11/13 13:50:27  dubuc
+Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+
+d77 8
+a84 10
+		int wbQtop = (wbQueue.seeTopQueue()).intValue();
+		if(wbQtop != 0){
+			// A[1] (Dependencia de Nivel 1 en A)
+			if(wbQtop != (BinConvert.byteToUpperNibble(rldi.seeElement(0))).intValue()){
+				aReg[1].setValue(aReg[0].intValue());
+			}
+			else {
+				aReg[1].setValue(xReg.intValue());
+				depAL2 = true;
+			}
+d86 10
+a95 28
+			// B[1] (Dependencia de Nivel 1 en B)
+			if(wbQtop != (BinConvert.byteToLowerNibble(rldi.seeElement(0))).intValue()){
+				bReg[1].setValue(bReg[0].intValue());
+			}
+			else{
+				bReg[1].setValue(xReg.intValue());
+				depBL2 = true;
+			}
+
+			depL2 = depAL2 || depBL2;
+
+			// A[0] (Dependencia de Nivel 2 en A)
+			if(wbQtop != sla.intValue()){
+				aReg[0].setValue((rFile.readMemory(sla.intValue())).intValue());
+			}
+			else{
+				aReg[0].setValue(xReg.intValue());
+				depAL1 = true;
+			}
+
+			// B[0] (Dependencia de Nivel 2 en B)
+			if(wbQtop != slb.intValue()){
+				bReg[0].setValue((rFile.readMemory(slb.intValue())).intValue());
+			}
+			else{
+				bReg[0].setValue(xReg.intValue());
+				depBL1 = true;
+			}
+d97 3
+a99 1
+			depL1 = depAL1 || depBL1;
+d101 15
+@

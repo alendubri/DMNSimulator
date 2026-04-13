@@ -1,0 +1,66 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.5
+date	96.11.13.13.50.27;	author dubuc;	state Exp;
+branches;
+next	;
+
+
+desc
+@Makefile para el paquete de simulacion
+@
+
+
+1.5
+log
+@Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+@
+text
+@################################################################################
+# Makefile para compilar programas en java
+################################################################################
+
+JC	=	javac
+
+# Esta es la forma de GNU make
+#%.class : %.java
+#	$(JC) $(JAVAFLAGS) $<
+
+CLASSES = NMETransf.class ALLU.class DependResolver.class Simulator.class
+
+.SUFFIXES: .class .java
+.java.class:
+	$(JC) $(JAVAFLAGS) $<
+
+% : %.java
+	$(JC) $(JAVAFLAGS) $<
+
+all: binContainer memory $(CLASSES)
+
+binContainer:
+	(cd ../binContainer; make)
+
+memory:
+	(cd ../memory; make)
+
+clean:
+	(cd ../binContainer; make clean)
+	(cd ../memory; make clean)
+	rm -f *.class
+
+ALLU.class: ALLU.java
+
+DependResolver.class: DependResolver.java
+
+Simulator.class: DependResolver.class ALLU.class Simulator.java
+
+NMETransf.class: NMETransf.java
+
+################################################################################
+@

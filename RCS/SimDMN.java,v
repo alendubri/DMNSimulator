@@ -1,0 +1,45 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.5
+date	96.11.13.13.42.03;	author dubuc;	state Exp;
+branches;
+next	;
+
+
+desc
+@Clase para correr el simulador de manera standalone.
+@
+
+
+1.5
+log
+@Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+@
+text
+@//$Id$
+
+/*
+$Log$
+*/
+
+import GUI.*;
+
+public class SimDMN {
+
+	public static void main(String [] args) {
+		DMNFrame f = new DMNFrame();
+//		f.inAnApplet = true; //puesto para probar la apertura de archivo por red
+		f.init();
+		f.pack(); // Esta instruccion empaqueta los componentes visuales
+ 		f.show();
+		f.repaint();
+	}
+
+}
+@

@@ -1,0 +1,76 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.5
+date	96.11.13.14.09.19;	author dubuc;	state Exp;
+branches;
+next	;
+
+
+desc
+@Clase Abstracta que implementa los metodos genericos de acceso para las
+para las memorias
+@
+
+
+1.5
+log
+@Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+@
+text
+@//$Id$
+
+/*
+$Log$
+*/
+
+package memory;
+
+import binContainer.*;
+
+public abstract class Memory {
+
+	protected Word [] locs;
+	protected int accessPointer, capacity;
+
+	public Word readMemory() {
+		return locs[accessPointer];
+	}
+
+	public Word readMemory(int loc) {
+		if(loc < capacity) {
+			accessPointer = loc;
+			return locs[accessPointer];
+		}
+		else return locs[capacity - 1];
+	}
+
+	public void writeMemory(Word w) {
+		locs[accessPointer] = (Word)w.clone();
+	}
+	public void writeMemory(Word w, int loc) {
+		if(loc < capacity) {
+			accessPointer = loc;
+			locs[accessPointer] = (Word)w.clone();
+		}
+	}
+
+	public void setAccessPointer(int loc) {
+		if(loc < capacity)
+			accessPointer = loc;
+	}
+
+	public int getAccessPointer() {
+		return accessPointer;
+	}
+
+	public int getCapMemory() {
+		return capacity;
+	}
+}
+@
