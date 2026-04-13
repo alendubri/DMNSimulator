@@ -1,6 +1,5 @@
 # Compiled class file
-# AD20260413: This is commented in the LegacyCode Branch, must be put back
-#*.class
+*.class
 
 # Log file
 *.log
