@@ -1,0 +1,55 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.5
+date	96.11.13.14.20.39;	author dubuc;	state Exp;
+branches;
+next	;
+
+
+desc
+@Clase que implementa colas de Word.
+@
+
+
+1.5
+log
+@Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+@
+text
+@//$id$
+
+/*
+$Log$
+*/
+
+package binContainer;
+
+public class WordQueue extends BinQueue {
+
+	public WordQueue(int s) {
+		size = s;
+		queue = new Word[size];
+		for(int i = 0; i < size; i++)
+			queue[i] = new Word();
+	}
+
+	public Word seeTopQueue() {
+		return queue[size - 1];
+	}
+
+	public Word seeElement(int pos) {
+		if ((pos >= 0) && (pos < size))
+			return queue[pos];
+		else
+			return queue[0];
+	}
+
+}
+
+@

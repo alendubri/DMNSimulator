@@ -1,0 +1,72 @@
+head	1.5;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.5
+date	96.11.13.14.20.39;	author dubuc;	state Exp;
+branches;
+next	;
+
+
+desc
+@Clase que implementa la abstraccion de un registro de 8 bits.
+@
+
+
+1.5
+log
+@Finalizacion de proyecto en esta revision, se igualan todas las revisiones
+a la 1.5
+@
+text
+@//$Id$
+
+/*
+$Log$
+*/
+
+package binContainer;
+
+import java.util.BitSet;
+
+public class Byte extends Word {
+	public Byte(){
+		super(0,8);
+	}
+
+	public Byte(int n){
+		super(n,8);
+	}
+
+	public Byte(long l){
+		super(l,8);
+	}
+
+	public Nibble toNibble() {
+		Nibble n = new Nibble();
+		for(int i = 0; i < n.nbits; i++)
+			if(this.bits.get(i))
+				n.bits.set(i);
+		return n;
+	}
+
+	public Byte add2Complement(Byte sum) {
+		int s1 = this.intValue2Complement();
+		int s2 = sum.intValue2Complement();
+		Byte w = new Byte();
+		w.setValue2Complement(s1 + s2);
+		return w;
+	}
+
+	public Byte sub2Complement(Byte sus) {
+		int s1 = this.intValue2Complement();
+		int s2 = sus.intValue2Complement();
+		Byte w = new Byte();
+		w.setValue2Complement(s1 - s2);
+		return w;
+	}
+}
+@
