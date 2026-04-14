@@ -25,3 +25,5 @@ replay_pid*
 
 .codex/
 .codex
+build/
+build
