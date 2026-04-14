@@ -12,10 +12,10 @@ public class DataMemory extends Memory {
 
 	public DataMemory(){
 		capacity = 256;
-		locs = new Byte[capacity];
+		locs = new DmnByte[capacity];
 		accessPointer = 0;
 		for(int i = 0; i < capacity; i++)
-			locs[i] = new Byte();
+			locs[i] = new DmnByte();
 	}
 
 }

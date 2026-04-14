@@ -80,12 +80,12 @@ class PointCanvas extends Canvas {
 		}
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return d;
 	}
 
-	public Dimension preferredSize() {
-		return minimumSize();
+	public Dimension getPreferredSize() {
+		return getMinimumSize();
 	}
 
 }

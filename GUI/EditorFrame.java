@@ -13,6 +13,7 @@ package GUI;
 import java.awt.*;
 import Assembler.*;
 
+@SuppressWarnings("deprecation")
 public class EditorFrame extends Dialog {
 
 	TextArea editArea;
@@ -26,14 +27,14 @@ public class EditorFrame extends Dialog {
 		if(editOldProgram){
 			int nInst = fSim.nInst;
 			for(int i = 0; i < nInst; i++) {
-				editArea.appendText(fSim.simul.nmeMem[i] + "\n");
+				editArea.append(fSim.simul.nmeMem[i] + "\n");
 			}
 		}
 	}
 
 	public EditorFrame(DMNFrame pr, String editSrc) {
 		this(pr);
-		editArea.appendText(editSrc);
+		editArea.append(editSrc);
 	}
 
 	public EditorFrame(DMNFrame pr){
@@ -63,39 +64,38 @@ public class EditorFrame extends Dialog {
 
 	public boolean handleEvent(Event e){
 		if (e.id == Event.WINDOW_DESTROY){
-			this.finalize();
+			closeDialog();
 		}
 		else if (e.id == Event.ACTION_EVENT){
 			if ("Close".equals(e.arg)) {
-				this.finalize();
+				closeDialog();
 			}
 			else if("Assemble".equals(e.arg)) {
 				assem.assemble(editArea.getText());
 				if(assem.assembOk) {
-					if (errLst.countItems() != 0) errLst.clear();
-					if (binLst.countItems() != 0) binLst.clear();
-					errLst.addItem("Successfully Assembly!!");
+					if (errLst.getItemCount() != 0) errLst.removeAll();
+					if (binLst.getItemCount() != 0) binLst.removeAll();
+					errLst.add("Successfully Assembly!!");
 					String [] assSt = assem.binArray(fSim.dRep);
 					for(int i = 0; i < assem.numOp; i++)
-						binLst.addItem(assSt[i]);
+						binLst.add(assSt[i]);
 					ConfirmAssembDialog cdial = new ConfirmAssembDialog(fSim,assem);
 					cdial.pack();
-					cdial.show();
+					cdial.setVisible(true);
 				}
 				else {
-					if (errLst.countItems() != 0) errLst.clear();
-					Integer nErr = new Integer(assem.numErr);
-					String errMsg = nErr.toString() + " Error(s) on Assembly.";
-					errLst.addItem(errMsg);
+					if (errLst.getItemCount() != 0) errLst.removeAll();
+					String errMsg = Integer.toString(assem.numErr) + " Error(s) on Assembly.";
+					errLst.add(errMsg);
 					String [] errSt = assem.errMsgArray();
 					for(int i = 0 ; i < assem.numErr; i++)
-						errLst.addItem(errSt[i]);
+						errLst.add(errSt[i]);
 				}
 			}
 			else if("Help".equals(e.arg)) {
 				hlp = new AssembHelp(fSim);
 				hlp.pack();
-				hlp.show();
+				hlp.setVisible(true);
 			}
 			else if("Clear".equals(e.arg)) {
 				this.editArea.setText("");
@@ -104,12 +104,14 @@ public class EditorFrame extends Dialog {
 		return super.handleEvent(e);
 	}
 
-	protected void finalize() {
+	private void closeDialog() {
 		if (hlp != null) hlp.killMe();
-		this.hide();
+		setVisible(false);
+		dispose();
 	}
 }
 
+@SuppressWarnings("deprecation")
 class AssembHelp extends Dialog {
 
 	static String [] hlpTxt = {
@@ -150,24 +152,26 @@ class AssembHelp extends Dialog {
 		ta.setEditable(false);
 		ta.setFont(new Font("Roman",Font.PLAIN,14));
 		for(int i = 0; i < 28; i++)
-			ta.appendText(hlpTxt[i]);
+			ta.append(hlpTxt[i]);
 		this.add("Center",ta);
 		this.add("South",new Button("Dismiss"));
 	}
 	public boolean action(Event e, Object w){
 		if("Dismiss".equals(e.arg)) {
-			this.finalize();
+			closeDialog();
 		}
 		return true;
 	}
 	public void killMe(){
-		finalize();
+		closeDialog();
 	}
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 }
 
+@SuppressWarnings("deprecation")
 class ConfirmAssembDialog extends Dialog {
 
 	DMNFrame fSim;
@@ -192,7 +196,7 @@ class ConfirmAssembDialog extends Dialog {
 
 	public boolean handleEvent(Event e){
 		if (e.id == Event.WINDOW_DESTROY){
-			this.finalize();
+			closeDialog();
 		}
 		else if (e.id == Event.ACTION_EVENT){
 			if ("Yes".equals(e.arg)) {
@@ -201,16 +205,17 @@ class ConfirmAssembDialog extends Dialog {
 					if (fSim.nmeOn) fSim.imlst.refreshItemsNme();
 					else fSim.instMemRefresh();
 					fSim.nInst = assem.numOp;
-					this.finalize();
+					closeDialog();
 			}
 			else if ("No".equals(e.arg)) {
-				this.finalize();
+				closeDialog();
 			}
 		}
 		return true;
 	}
 
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 }

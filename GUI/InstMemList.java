@@ -27,15 +27,15 @@ public class InstMemList extends List {
 		nmeMem = nme;
 		size = iMem.getCapMemory();
 		for(int i = 0; i < size; i++){
-			Byte d = new Byte(i);
-			this.addItem(d.toHexString() + ":" + nmeMem[i]);
+			DmnByte d = new DmnByte(i);
+			this.add(d.toHexString() + ":" + nmeMem[i]);
 		}
 	}
 
 	public void refreshItemsDec() {
 		for(int i = 0; i < size; i++){
 			Word b = iMem.readMemory(i);
-			Byte d = new Byte(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + b.toString(),i);
 		}
 	}
@@ -43,7 +43,7 @@ public class InstMemList extends List {
 	public void refreshItemsHex() {
 		for(int i = 0; i < size; i++){
 			Word b = iMem.readMemory(i);
-			Byte d = new Byte(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + b.toHexString(),i);
 		}
 	}
@@ -51,14 +51,14 @@ public class InstMemList extends List {
 	public void refreshItemsBin() {
 		for(int i = 0; i < size; i++){
 			Word b = iMem.readMemory(i);
-			Byte d = new Byte(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + b.toBinaryString(),i);
 		}
 	}
 
 	public void refreshItemsNme() {
 		for(int i = 0; i < size; i++){
-			Byte d = new Byte(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + nmeMem[i],i);
 		}
 	}

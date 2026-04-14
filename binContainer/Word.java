@@ -156,7 +156,7 @@ public class Word extends Number implements Cloneable {
 	  * representacion decimal (base 10).
 	  */
 	public String toString() {
-		return (new Long(this.longValue())).toString();
+		return Long.toString(this.longValue());
 	}
 
     /**

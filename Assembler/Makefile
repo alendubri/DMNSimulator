@@ -1,27 +1,8 @@
 ################################################################################
-# Makefile para compilar programas en java
+# Compatibility shim: delegate package builds to the unified root Makefile.
 ################################################################################
 
-JC	=	javac
+.PHONY: all compile clean exec run appletexec
 
-# Esta es la forma de GNU make
-#%.class : %.java
-#	$(JC) $(JAVAFLAGS) $<
-
-CLASSES = Assembler.class
-
-.SUFFIXES: .class .java
-.java.class:
-	$(JC) $(JAVAFLAGS) $<
-
-% : %.java
-	$(JC) $(JAVAFLAGS) $<
-
-all: $(CLASSES)
-
-clean:
-	rm -f *.class
-
-Assembler.class: Assembler.java
-
-################################################################################
+all compile clean exec run appletexec:
+	$(MAKE) -C .. $@

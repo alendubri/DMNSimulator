@@ -40,6 +40,7 @@ import java.io.*;
 //==============================================================================
 // Clase DMNFrame
 //==============================================================================
+@SuppressWarnings("deprecation")
 public class DMNFrame extends Frame {
 
 //------------------------------------------------------------------------------
@@ -103,7 +104,7 @@ public class DMNFrame extends Frame {
 	public DMNFrame(){
 		super("SimDMN");
 
-		this.resize(600,600);
+		this.setSize(600,600);
 		this.setBackground(new Color(0x00,0x8b,0x8b));
 		this.setForeground(Color.black);
 		this.setFont(new Font("Helvetica", Font.PLAIN, 14));
@@ -122,7 +123,7 @@ public class DMNFrame extends Frame {
 		this.imlst.setBackground(Color.white);
 		this.imlst.setForeground(Color.black);
 
-		this.mainMenu = new MainMenu(super);
+		this.mainMenu = new MainMenu(this);
 
 		this.setInitialPanelGeometry(); 
 		this.setInitialComponents();
@@ -230,7 +231,7 @@ public class DMNFrame extends Frame {
 		p1.add(new Label(ABOUT_LAB4,Label.CENTER));
 		aboutDl.add("North",p1);
 		aboutDl.add("South",new Button(OKDL));
-		aboutDl.resize(250,200);
+		aboutDl.setSize(250,200);
 		aboutDl.setResizable(false);
 	}
 //------------------------------------------------------------------------------
@@ -262,8 +263,8 @@ public class DMNFrame extends Frame {
 
 	private void quitConfirm() {
 		QuitDialog qDialog = new QuitDialog(this,this);
-		qDialog.resize(250,150);
-		qDialog.show();
+		qDialog.setSize(250,150);
+		qDialog.setVisible(true);
 	}
 
 	public boolean createDataInputStream(String dir,String file){
@@ -287,7 +288,7 @@ public class DMNFrame extends Frame {
 
 				urlSt = urlBase.getProtocol()+"://"+urlBase.getHost()+"/"+ file;
 
-				nFile = new URL(urlSt);
+				nFile = new URL(urlBase,file);
 				dis = new DataInputStream(nFile.openStream());
 				return true;
 			}
@@ -340,21 +341,22 @@ public class DMNFrame extends Frame {
 		try{
 			int i = 0;
 			String inputLine;
+			BufferedReader reader = new BufferedReader(new InputStreamReader(dis));
 
-			while((inputLine = dis.readLine()) != null){
+			while((inputLine = reader.readLine()) != null){
 				if(i <= 0xff)
 					sb.append(inputLine + "\n");
 				i++;
 			}
 
-			dis.close();
+			reader.close();
 		}
 		catch(java.io.IOException e){
 			return false;
 		}
 		EditorFrame edSrc = new EditorFrame(this,sb.toString());
 		edSrc.pack();
-		edSrc.show();
+		edSrc.setVisible(true);
 		return true;
 	}
 
@@ -397,31 +399,31 @@ public class DMNFrame extends Frame {
 				quitConfirm();
 			}
 			if ("Yes".equals(event.arg)){
-				aboutDl.hide();
-				finalize();
+				aboutDl.setVisible(false);
+				closeFrame();
 			}
 			else if(MainMenu.ABUT.equals(event.arg)){
-				aboutDl.show();
+				aboutDl.setVisible(true);
 			}
 			else if(MainMenu.OSRC.equals(event.arg)){
 				boolean ok;
 				if (!inAnApplet) {
 					FileDialog fd = new FileDialog(this,"Open DMN Source",FileDialog.LOAD);
 					fd.pack();
-					fd.show();
+					fd.setVisible(true);
 					if((fd.getDirectory()!= null)&&(fd.getFile()!=null))
 						if(createDataInputStream(fd.getDirectory(),fd.getFile()))
 							ok = openDMNSource();
 						else {
 							fnfdial = new FNFDialog(this,"Couldn't open DMN Source");
 							fnfdial.pack();
-							fnfdial.show();
+							fnfdial.setVisible(true);
 						}
 				}
 				else {
 					NetFileDialog nfdial = new NetFileDialog(this,"Open DMN Source",false);
 					nfdial.pack();
-					nfdial.show();
+					nfdial.setVisible(true);
 				}
 			}
 			else if(MainMenu.OBIN.equals(event.arg)){
@@ -429,31 +431,31 @@ public class DMNFrame extends Frame {
 				if (!inAnApplet) {
 					FileDialog fd = new FileDialog(this,"Open DMN Binary",FileDialog.LOAD);
 					fd.pack();
-					fd.show();
+					fd.setVisible(true);
 					if((fd.getDirectory()!= null)&&(fd.getFile()!=null))
 						if(createDataInputStream(fd.getDirectory(),fd.getFile()))
 							ok = openDMNBinary();
 						else {
 							fnfdial = new FNFDialog(this,"Couldn't open DMN Binary");
 							fnfdial.pack();
-							fnfdial.show();
+							fnfdial.setVisible(true);
 						}
 				}
 				else {
 					NetFileDialog nfdial = new NetFileDialog(this,"Open DMN Binary",true);
 					nfdial.pack();
-					nfdial.show();
+					nfdial.setVisible(true);
 				}
 			}
 			else if(MainMenu.ESRC.equals(event.arg)){
 				EditorFrame edFrame = new EditorFrame(this);
 				edFrame.pack();
-				edFrame.show();
+				edFrame.setVisible(true);
 			}
 			else if(MainMenu.ECUR.equals(event.arg)){
 				EditorFrame edFrame = new EditorFrame(this,true);
 				edFrame.pack();
-				edFrame.show();
+				edFrame.setVisible(true);
 			}
 			else if(MainMenu.PLAY.equals(event.arg)){
 				mainMenu.plChk.setState(true);
@@ -535,12 +537,13 @@ public class DMNFrame extends Frame {
 	}
 
 	public void theEnd(){
-		this.finalize();
+		closeFrame();
 	}
 
-	protected void finalize(){
+	private void closeFrame(){
 		if (inAnApplet) {
-			hide();
+			setVisible(false);
+			dispose();
 		} else {
 			System.exit(0);
 		}
@@ -899,6 +902,7 @@ public class DMNFrame extends Frame {
 // Fin de la Clase DMNFrame
 //==============================================================================
 
+@SuppressWarnings("deprecation")
 class QuitDialog extends Dialog {
 
 	DMNFrame parent;
@@ -922,25 +926,27 @@ class QuitDialog extends Dialog {
 
 	public boolean handleEvent(Event e){
 		if (e.id == Event.WINDOW_DESTROY){
-			this.finalize();
+			closeDialog();
 		}
 		else if (e.id == Event.ACTION_EVENT){
 			if ("No".equals(e.arg)) {
-				this.finalize();
+				closeDialog();
 			}
 			if ("Yes".equals(e.arg)) {
-				this.finalize();
+				closeDialog();
 				parent.theEnd();
 			}
 		}
 		return super.handleEvent(e);
 	}
 
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 }
 
+@SuppressWarnings("deprecation")
 class FNFDialog extends Dialog {
 
 	Dimension d;
@@ -959,25 +965,27 @@ class FNFDialog extends Dialog {
 
 	public boolean action(Event e, Object w) {
 		if("Dismiss".equals(e.arg)){
-			this.finalize();
+			closeDialog();
 		}
 		return true;
 	}
 
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 
 	public Dimension minimunSize(){
 		return d;
 	}
 
-	public Dimension preferredSize(){
+	public Dimension getPreferredSize(){
 		return minimunSize();
 	}
 
 }
 
+@SuppressWarnings("deprecation")
 class NetFileDialog extends Dialog {
 
 	Dimension d;
@@ -1010,7 +1018,7 @@ class NetFileDialog extends Dialog {
 	public boolean handleEvent(Event e) {
 		if (e.id == Event.ACTION_EVENT){
 			if("Dismiss".equals(e.arg)){
-				this.finalize();
+				closeDialog();
 			}
 			else if("Open".equals(e.arg)){
 				urlSt = tf.getText();
@@ -1029,23 +1037,24 @@ class NetFileDialog extends Dialog {
 					else
 						fnfd = new FNFDialog(fSim,"Couldn't open DMN Source");
 					fnfd.pack();
-					fnfd.show();
+					fnfd.setVisible(true);
 				}
-				else this.finalize();
+				else closeDialog();
 			}
 		}
 		return super.handleEvent(e);
 	}
 
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 
 	public Dimension minimunSize(){
 		return d;
 	}
 
-	public Dimension preferredSize(){
+	public Dimension getPreferredSize(){
 		return minimunSize();
 	}
 }

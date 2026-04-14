@@ -1,7 +1,7 @@
-//$Id: Byte.java,v 1.5 1996/11/13 14:20:39 dubuc Exp $
+//$Id: DmnByte.java,v 1.5 1996/11/13 14:20:39 dubuc Exp $
 
 /*
-$Log: Byte.java,v $
+$Log: DmnByte.java,v $
 Revision 1.5  1996/11/13 14:20:39  dubuc
 Finalizacion de proyecto en esta revision, se igualan todas las revisiones
 a la 1.5
@@ -12,16 +12,16 @@ package binContainer;
 
 import java.util.BitSet;
 
-public class Byte extends Word {
-	public Byte(){
+public class DmnByte extends Word {
+	public DmnByte(){
 		super(0,8);
 	}
 
-	public Byte(int n){
+	public DmnByte(int n){
 		super(n,8);
 	}
 
-	public Byte(long l){
+	public DmnByte(long l){
 		super(l,8);
 	}
 
@@ -33,18 +33,18 @@ public class Byte extends Word {
 		return n;
 	}
 
-	public Byte add2Complement(Byte sum) {
+	public DmnByte add2Complement(DmnByte sum) {
 		int s1 = this.intValue2Complement();
 		int s2 = sum.intValue2Complement();
-		Byte w = new Byte();
+		DmnByte w = new DmnByte();
 		w.setValue2Complement(s1 + s2);
 		return w;
 	}
 
-	public Byte sub2Complement(Byte sus) {
+	public DmnByte sub2Complement(DmnByte sus) {
 		int s1 = this.intValue2Complement();
 		int s2 = sus.intValue2Complement();
-		Byte w = new Byte();
+		DmnByte w = new DmnByte();
 		w.setValue2Complement(s1 - s2);
 		return w;
 	}

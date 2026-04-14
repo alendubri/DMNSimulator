@@ -77,13 +77,13 @@ public class MainMenu {
 		m1.add(new MenuItem(OSRC));
 		MenuItem iSSTA;
 		m1.add(iSSTA = new MenuItem(SSTA));
-		iSSTA.disable();
+		iSSTA.setEnabled(false);
 		m1.addSeparator();
 		m1.add(new MenuItem(QUIT));
 		Menu m2 = new Menu(OPTS);
 		MenuItem iSTAT;
 		m2.add(iSTAT = new MenuItem(STAT));
-		iSTAT.disable();
+		iSTAT.setEnabled(false);
 		mneChk.setState(true);
 		m2.add(mneChk);
 		Menu sm1 = new Menu(DTAR);

@@ -14,6 +14,7 @@ import java.awt.*;
 import memory.*;
 import binContainer.*;
 
+@SuppressWarnings("deprecation")
 public class DataMemList extends List {
 
 	DataMemory dMem;
@@ -26,51 +27,51 @@ public class DataMemList extends List {
 		dMem = dm;
 		size = dMem.getCapMemory();
 		for(int i = 0; i < size; i++){
-			Byte b = (Byte)dMem.readMemory(i);
-			Byte d = new Byte(i);
-			this.addItem(d.toHexString() + ":" + b.toString());
+			DmnByte b = (DmnByte)dMem.readMemory(i);
+			DmnByte d = new DmnByte(i);
+			this.add(d.toHexString() + ":" + b.toString());
 		}
 	}
 
 	public void refreshItemsDec() {
 		for(int i = 0; i < size; i++){
-			Byte b = (Byte)dMem.readMemory(i);
-			Byte d = new Byte(i);
+			DmnByte b = (DmnByte)dMem.readMemory(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + b.toString(),i);
 		}
 	}
 
 	public void refreshItemsDec(int pos) {
-		Byte b = (Byte)dMem.readMemory(pos);
-		Byte d = new Byte(pos);
+		DmnByte b = (DmnByte)dMem.readMemory(pos);
+		DmnByte d = new DmnByte(pos);
 		this.replaceItem(d.toHexString() + ":" + b.toString(),pos);
 	}
 
 	public void refreshItemsHex() {
 		for(int i = 0; i < size; i++){
-			Byte b = (Byte)dMem.readMemory(i);
-			Byte d = new Byte(i);
+			DmnByte b = (DmnByte)dMem.readMemory(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + b.toHexString(),i);
 		}
 	}
 
 	public void refreshItemsHex(int pos) {
-		Byte b = (Byte)dMem.readMemory(pos);
-		Byte d = new Byte(pos);
+		DmnByte b = (DmnByte)dMem.readMemory(pos);
+		DmnByte d = new DmnByte(pos);
 		this.replaceItem(d.toHexString() + ":" + b.toHexString(),pos);
 	}
 
 	public void refreshItemsBin() {
 		for(int i = 0; i < size; i++){
-			Byte b = (Byte)dMem.readMemory(i);
-			Byte d = new Byte(i);
+			DmnByte b = (DmnByte)dMem.readMemory(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + b.toBinaryString(),i);
 		}
 	}
 
 	public void refreshItemsBinary(int pos) {
-		Byte b = (Byte)dMem.readMemory(pos);
-		Byte d = new Byte(pos);
+		DmnByte b = (DmnByte)dMem.readMemory(pos);
+		DmnByte d = new DmnByte(pos);
 		this.replaceItem(d.toHexString() + ":" + b.toBinaryString(),pos);
 	}
 
@@ -82,10 +83,10 @@ public class DataMemList extends List {
 		}break;
 		case Event.ACTION_EVENT:{
 			if(event.target instanceof List) {
-				if(isSelected(getSelectedIndex())){
+				if(isIndexSelected(getSelectedIndex())){
 					ChangeDMemDialog cd = new ChangeDMemDialog(fSim,getSelectedIndex());
 					cd.pack();
-					cd.show();
+					cd.setVisible(true);
 				}
 			}
 		}break;
@@ -97,6 +98,7 @@ public class DataMemList extends List {
 
 }
 
+@SuppressWarnings("deprecation")
 class ChangeDMemDialog extends Dialog {
 
 	final int   DEC = 1;
@@ -112,7 +114,7 @@ class ChangeDMemDialog extends Dialog {
 		fSim = f;
 		mLoc = loc;
 		this.setLayout(new GridLayout(4,1));
-		String locSt = "Change Location at address :" + (new Byte(loc)).toHexString();
+		String locSt = "Change Location at address :" + (new DmnByte(loc)).toHexString();
 		String repSt = new String();
 		bVal = new TextField();
 		switch(fSim.dRep) {
@@ -144,13 +146,14 @@ class ChangeDMemDialog extends Dialog {
 		this.add(q);
 	}
 
-	protected void finalize(){
-		this.hide();
+	private void closeDialog(){
+		setVisible(false);
+		dispose();
 	}
 
 	public boolean action(Event e, Object w){
 		if("Cancel".equals(e.arg)){
-			this.finalize();
+			closeDialog();
 		}
 		else if("Change".equals(e.arg)){
 			try{
@@ -161,9 +164,9 @@ class ChangeDMemDialog extends Dialog {
 					if((val < 0) || (val > 0xff))
 						putNumber();
 					else {
-						fSim.simul.dMemory.writeMemory(new Byte(val),mLoc);
+						fSim.simul.dMemory.writeMemory(new DmnByte(val),mLoc);
 						fSim.dmlst.refreshItemsDec(mLoc);
-						this.finalize();
+						closeDialog();
 					}
 					break;
 				case HEX: 
@@ -171,9 +174,9 @@ class ChangeDMemDialog extends Dialog {
 					if((val < 0) || (val > 0xff))
 						putNumber();
 					else {
-						fSim.simul.dMemory.writeMemory(new Byte(val),mLoc);
+						fSim.simul.dMemory.writeMemory(new DmnByte(val),mLoc);
 						fSim.dmlst.refreshItemsHex(mLoc);
-						this.finalize();
+						closeDialog();
 					}
 					break;
 				case BIN: 
@@ -181,9 +184,9 @@ class ChangeDMemDialog extends Dialog {
 					if((val < 0) || (val > 0xff))
 						putNumber();
 					else {
-						fSim.simul.dMemory.writeMemory(new Byte(val),mLoc);
+						fSim.simul.dMemory.writeMemory(new DmnByte(val),mLoc);
 						fSim.dmlst.refreshItemsBinary(mLoc);
-						this.finalize();
+						closeDialog();
 					}
 					break;
 				}

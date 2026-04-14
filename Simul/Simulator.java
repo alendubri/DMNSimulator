@@ -29,9 +29,9 @@ public class Simulator {
 	public String [] nmeMem;
 
 	Word instruction;
-	Byte lInst, hInst;
-	public Byte xReg;
-	public Byte pcReg;
+	DmnByte lInst, hInst;
+	public DmnByte xReg;
+	public DmnByte pcReg;
 	public NibbleQueue wbQueue, exQueue;
 	public Nibble wb4;
 	public RegFileMemory rFile;
@@ -47,8 +47,8 @@ public class Simulator {
 
 	public Simulator() {
 		instruction = new Word();
-		lInst = new Byte();
-		hInst = new Byte();
+		lInst = new DmnByte();
+		hInst = new DmnByte();
 		wbQueue = new NibbleQueue(3);
 		exQueue = new NibbleQueue(2);
 		wb4 = new Nibble();
@@ -60,7 +60,7 @@ public class Simulator {
 		xReg = alu.xReg;
 		dMemory = alu.dMemory;
 		rldi = alu.rldi;
-		pcReg = new Byte();
+		pcReg = new DmnByte();
 		nmeMem = new String[iMemory.getCapMemory()];
 		pcState[0] = true;
 		wmem = false;

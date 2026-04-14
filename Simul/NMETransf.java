@@ -25,7 +25,7 @@ public class NMETransf {
 	public static String bin2Nme(Word w) {
 
 		StringBuffer tmpStr = new StringBuffer();
-		Byte hByte, lByte;
+		DmnByte hByte, lByte;
 
 		hByte = BinConvert.wordToUpperByte(w);
 		lByte = BinConvert.wordToLowerByte(w);

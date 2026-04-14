@@ -12,6 +12,7 @@ package GUI;
 
 import java.awt.*;
 
+@SuppressWarnings("deprecation")
 public class StagesPanel extends Panel {
 
 	Panel [] panels = new Panel[3];
@@ -89,12 +90,12 @@ public class StagesPanel extends Panel {
 			}
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return d;
 	}
 
-	public Dimension preferredSize() {
-		return minimumSize();
+	public Dimension getPreferredSize() {
+		return getMinimumSize();
 	}
 
 }
@@ -117,12 +118,12 @@ class StLabel extends Label {
 		d = new Dimension(20,30);
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return d;
 	}
 
-	public Dimension preferredSize() {
-		return minimumSize();
+	public Dimension getPreferredSize() {
+		return getMinimumSize();
 	}
 }
 
@@ -170,15 +171,16 @@ class SingleStagePanel extends Panel {
 		}
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return d;
 	}
 
-	public Dimension preferredSize() {
-		return minimumSize();
+	public Dimension getPreferredSize() {
+		return getMinimumSize();
 	}
 }
 
+@SuppressWarnings("deprecation")
 class IntrCanvas extends Canvas {
 
 	Dimension d;
@@ -263,16 +265,17 @@ class IntrCanvas extends Canvas {
 		return false;
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return d;
 	}
 
-	public Dimension preferredSize() {
-		return minimumSize();
+	public Dimension getPreferredSize() {
+		return getMinimumSize();
 	}
 }
 
 
+@SuppressWarnings("deprecation")
 class RunCheckbox extends Checkbox {
 
 	public RunCheckbox(String str, CheckboxGroup cbg, boolean st){

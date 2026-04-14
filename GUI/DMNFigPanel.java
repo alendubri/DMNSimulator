@@ -126,12 +126,12 @@ class DMNCanvasSup extends Canvas {
 
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return d;
 	}
 
-	public Dimension preferredSize() {
-		return minimumSize();
+	public Dimension getPreferredSize() {
+		return getMinimumSize();
 	}
 }
 
@@ -267,12 +267,12 @@ class DMNCanvasInf extends Canvas {
 		g.drawLine(x+50,y+50,x+100,y+50);
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return d;
 	}
 
-	public Dimension preferredSize() {
-		return minimumSize();
+	public Dimension getPreferredSize() {
+		return getMinimumSize();
 	}
 }
 
@@ -339,12 +339,12 @@ class DMNCanvasSide extends Canvas {
 		g.drawString(st,x+mph,y+h/2+mpv);
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return d;
 	}
 
-	public Dimension preferredSize() {
-		return minimumSize();
+	public Dimension getPreferredSize() {
+		return getMinimumSize();
 	}
 }
 
