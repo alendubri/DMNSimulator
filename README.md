@@ -113,6 +113,69 @@ Subdirectory usage remains available for convenience:
 
 All of those delegate to the unified root build.
 
+## Maven And IDE Integration
+
+The repository now also includes a minimal Maven build descriptor:
+
+- `pom.xml`: desktop-oriented Maven build for modern IDE integration.
+- the Maven build keeps the current repository layout and does not require moving sources into `src/main/java`.
+- the Maven build targets Java 21 for IDE compatibility even though the WSL command-line validation environment currently uses OpenJDK 25.
+- `DMNApplet.java` is intentionally excluded from the default Maven build so the modern desktop workflow remains clean.
+
+Useful Maven command:
+
+- `mvn compile`: compile the desktop simulator sources into `target/classes`.
+
+Expected environment split:
+
+- WSL/Linux validation environment: OpenJDK 25 and Maven 3.x.
+- Windows Eclipse integration baseline: Eclipse IDE for Java Developers 2026-03 using Oracle JDK 21.0.10.
+- VSCode integration baseline: open the repository as a Maven Java project with the Java and Maven extensions installed.
+
+Why Java 21 is used in Maven:
+
+- JDK 25 in WSL can compile with `--release 21`,
+- Eclipse on Windows using JDK 21 can import and build the same project,
+- VSCode Java tooling is more stable when the project declares a standard Maven compiler target.
+
+Recommended IDE support:
+
+- Eclipse: import the repository as an existing Maven project and select a Java 21 JDK.
+- VSCode: install the `Extension Pack for Java` and `Maven for Java`, then open the repository folder and allow the workspace to import the Maven project.
+
+The Makefiles and launcher scripts remain available in parallel. Maven support is additive and mainly intended to improve interoperability with modern IDEs.
+
+Troubleshooting notes:
+
+- Eclipse:
+  - if the project imports but shows compiler errors, verify that the workspace or project JRE is a full JDK 21 and not only a JRE,
+  - if Maven configuration is not picked up, run `Maven > Update Project...` inside Eclipse,
+  - if the build path looks inconsistent, confirm that Eclipse is importing the repository as a Maven project, not only as a plain existing project.
+- VSCode:
+  - if Java packages are unresolved, make sure the Java extensions finish importing the Maven project before editing,
+  - if the wrong JDK is selected, configure a Java 21 runtime for the workspace or project,
+  - if Maven actions are missing, confirm that both the Java extension pack and the Maven extension are installed.
+
+Official references:
+
+- OpenJDK:
+  - OpenJDK main site: <https://openjdk.org/>
+  - OpenJDK install notes: <https://openjdk.org/install/>
+  - JDK 25 project page: <https://openjdk.org/projects/jdk/25/>
+- Oracle JDK:
+  - Oracle Java downloads: <https://www.oracle.com/java/technologies/javase-downloads.html>
+  - Oracle JDK 21 installation guide: <https://docs.oracle.com/en/java/javase/21/install/>
+- Eclipse:
+  - Eclipse IDE for Java Developers 2026-03: <https://www.eclipse.org/downloads/packages/release/2026-03/r/eclipse-ide-java-developers>
+  - Eclipse packages overview: <https://www.eclipse.org/downloads/packages/>
+- VSCode:
+  - Getting started with Java in VS Code: <https://code.visualstudio.com/docs/java/java-tutorial>
+  - Java build tools in VS Code: <https://code.visualstudio.com/docs/java/java-build>
+  - Managing Java projects in VS Code: <https://code.visualstudio.com/docs/java/java-project>
+  - Java extensions overview: <https://code.visualstudio.com/docs/java/extensions>
+  - Extension Pack for Java: <https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack>
+  - Maven for Java: <https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-maven>
+
 ## JDK 25 Notes
 
 This branch has been tested with OpenJDK 25 on Linux and Windows-oriented launch workflows.
@@ -149,3 +212,5 @@ Historical Java reference:
 - the original code dates from 1996 and targets Java 1.0.1-era APIs,
 - a historically compatible reference JDK is [`YujiSoftware/JDK1.0`](https://github.com/YujiSoftware/JDK1.0), whose README identifies it as Java 1.0.2,
 - that legacy JDK may be useful for historical runtime comparisons, but it is not the target of the modernized build in this branch.
+
+Last Edit: 2026-04-20

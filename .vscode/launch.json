@@ -1,0 +1,13 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "java",
+			"name": "Launch SimDMN",
+			"request": "launch",
+			"mainClass": "SimDMN",
+			"projectName": "dmnsimulator",
+			"cwd": "${workspaceFolder}"
+		}
+	]
+}
