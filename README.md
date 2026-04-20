@@ -2,35 +2,48 @@
 
 DMNSimulator is the Java simulator of Professor Dr. Gerard Paez's academic DMN 17N78 computer architecture.
 
-This repository preserves the original 1996 Java 1.0.1 legacy code, including the compiled `.class` files that were distributed with it.
+This branch is now aimed at building and testing the code on a modern JDK while preserving the historical structure of the project. The original preserved legacy state belongs to the `LegacyCode` branch of this repository.
 
-## What Is In This Repository
+## Current Status
+
+This branch compiles on OpenJDK 25 in both Linux and Windows environments.
+
+The current modernization work completed so far includes:
+
+- repository-wide rename of the custom `binContainer.Byte` type to `binContainer.DmnByte`,
+- fix for the invalid `new MainMenu(super)` constructor call in `GUI/DMNFrame.java`,
+- cleanup of several removed or heavily deprecated Java APIs,
+- full migration of the desktop GUI from the old AWT 1.0 event model to listener-based event handling,
+- unification of the build into a single root Makefile that works with the installed modern JDK.
+
+The result is a codebase that can be compiled for testing on a current JDK without preserving the exact historical build mechanics in this branch.
+
+## Repository Layout
 
 The active source tree is organized around two top-level launchers and five Java packages:
 
 - `SimDMN.java`: desktop entry point that opens the main simulator window.
-- `DMNApplet.java`: applet entry point used by `DMNApplet.html` and `index.html`.
+- `DMNApplet.java`: historical applet entry point kept for source compatibility.
 - `Assembler/`: integrated assembler for the DMN instruction set, including label resolution and error reporting.
 - `GUI/`: AWT-based user interface, dialogs, menus, memory/register views, pipeline stage panels, and execution controls.
 - `Simul/`: simulation core, instruction decoding to mnemonics, ALU behavior, dependency resolution, and execution flow.
 - `memory/`: instruction memory, data memory, register file, and common memory abstractions.
-- `binContainer/`: low-level `Word`, `Byte`, `Nibble`, and queue classes used by the simulator internals.
+- `binContainer/`: low-level `Word`, `DmnByte`, `Nibble`, and queue classes used by the simulator internals.
 
 Additional repository contents:
 
 - `dmnsrc.asm`: sample DMN assembly source.
 - `dmnbin.bin`: sample binary program file, read as raw 16-bit words.
-- `00-Doc/DMNSIM.pdf`: original project documentation kept with the legacy snapshot.
+- `00-Doc/DMNSIM.pdf`: original project documentation.
 - `imag/`, `construt.gif`, `about_javalogo`, `ColPrb.html`, `index.html`, `DMNApplet.html`: historical assets and applet-era HTML pages.
 
-The `RCS/` directories are archival revision files from the original source control workflow. They are not part of the active codebase or Make build and can be ignored.
+The `RCS/` directories are archival revision files from the original source control workflow. They are not part of the active codebase or the modern Make build.
 
 ## What The Simulator Does
 
 The codebase implements a teaching-oriented simulator with:
 
 - a desktop GUI written with AWT,
-- an applet wrapper for browser-era deployment,
 - an integrated assembler/editor,
 - instruction, data, and register memory views,
 - execution controls for `Play`, `Pause`, `Stop`, `Step`, and `Reset`,
@@ -39,7 +52,7 @@ The codebase implements a teaching-oriented simulator with:
 - interrupt handling support,
 - decimal, hexadecimal, binary, and mnemonic views depending on the panel.
 
-The assembler and mnemonic conversion code show support for the following DMN instructions:
+The assembler and mnemonic conversion code support the following DMN instructions:
 
 `ADD`, `SUB`, `AND`, `OR`, `NOT`, `SHT`, `ZTS`, `NTS`, `JCN`, `RTI`, `HLT`, `LDI`, `LDR`, `STR`
 
@@ -50,43 +63,154 @@ From the current source, the simulator uses:
 - a 16-entry register file,
 - special register labels `CN`, `HA`, `PS`, and `PC`.
 
-## Build Layout
+## Modern Build
 
-The project uses recursive Makefiles instead of a modern Java build tool.
+The project now uses a unified root Makefile for the modern JDK workflow.
 
-- Root `Makefile`: builds `SimDMN.class` and `DMNApplet.class`, and delegates to `Simul/`, `Assembler/`, and `GUI/`.
-- `Simul/Makefile`: depends on `binContainer/` and `memory/`.
-- `memory/Makefile`: builds the memory abstractions and concrete memories.
-- `binContainer/Makefile`: builds the binary container and queue classes.
-- `Assembler/Makefile`: builds the assembler package.
-- `GUI/Makefile`: builds the AWT front end.
+- Root `Makefile`: the real build entry point. It compiles the full source tree from the repository root into `build/classes`.
+- `GUI/Makefile`, `Simul/Makefile`, `Assembler/Makefile`, `memory/Makefile`, `binContainer/Makefile`: compatibility shims that delegate to the root Makefile.
 
 Available root targets:
 
-- `make`: build the project using the checked-in dependencies and package Makefiles.
-- `make exec`: run the desktop simulator with `java SimDMN`.
-- `make appletexec`: open the historical applet page with `appletviewer DMNApplet.html`.
-- `make clean`: remove generated `.class` files from the active build directories.
+- `make`: compile the full project into `build/classes`.
+- `make exec`: run the desktop simulator with `java -cp build/classes SimDMN`.
+- `make clean`: remove the generated `build/` directory.
+- `make sources`: print the Java source file list used by the build.
+- `make legacy-clean`: remove checked-in and generated `.class` files from the working tree.
 
-## Notes On Building Today
+Helper script:
 
-This is legacy Java 1.0.1 code. The source uses APIs and UI patterns from the mid-1990s, especially AWT and applets.
+- `bash ./run-dmnsim.sh`: compile and run the desktop simulator.
+- `bash ./run-dmnsim.sh --build-only`: compile only.
+- `bash ./run-dmnsim.sh --clean`: clean first, then compile and run.
 
-In the current workspace:
+Windows helper script:
 
-- `make` completes because the repository already includes compiled `.class` files.
-- `java` and `javac` are not installed, so a clean rebuild and runtime verification were not possible here.
+- `run-dmnsim.bat`: compile and run the desktop simulator from `cmd.exe` or PowerShell.
+- `run-dmnsim.bat --build-only`: compile only.
+- `run-dmnsim.bat --clean`: clean first, then compile and run.
+- these Windows launchers require `java` and `javac` to be installed on the Windows side and available in the Windows `PATH`; a JDK installed only inside WSL is not enough for `cmd.exe` or PowerShell.
 
-There is at least one historically compatible runtime option available today: [`YujiSoftware/JDK1.0`](https://github.com/YujiSoftware/JDK1.0), whose README identifies it as a Java 1.0.2 distribution and includes the classic tools such as `java`, `javac`, and `appletviewer`.
+Developer helper script:
 
-From project usage so far:
+- `bash ./run-dmnsim-dev.sh`: run a stricter JDK 25 compile with lint warnings enabled, then start the desktop simulator.
+- `bash ./run-dmnsim-dev.sh --build-only`: run the strict compile only.
+- `bash ./run-dmnsim-dev.sh --clean`: clean first, then run the strict compile and launch.
 
-- the checked-in legacy `.class` files can be executed with that JDK,
-- recompiling the source still does not work yet,
-- this repository should therefore be treated as a preserved legacy snapshot first, and as a cleanly rebuildable codebase only after additional compatibility debugging.
+Windows developer helper script:
 
-## Legacy Notes
+- `run-dmnsim-dev.bat`: run a stricter JDK 25 compile with lint warnings enabled, then start the desktop simulator from `cmd.exe` or PowerShell.
+- `run-dmnsim-dev.bat --build-only`: run the strict compile only.
+- `run-dmnsim-dev.bat --clean`: clean first, then run the strict compile and launch.
 
-- The repository intentionally keeps generated `.class` files because they are part of the preserved historical snapshot.
-- Some menu items are present only as partial legacy UI features; for example, statistics-related actions are disabled in the menu.
-- The HTML files and applet launcher reflect the original deployment model and are included for archival completeness.
+Subdirectory usage remains available for convenience:
+
+- `make -C GUI`
+- `make -C Simul`
+- `make -C Assembler`
+- `make -C memory`
+- `make -C binContainer`
+
+All of those delegate to the unified root build.
+
+## Maven And IDE Integration
+
+The repository now also includes a minimal Maven build descriptor:
+
+- `pom.xml`: desktop-oriented Maven build for modern IDE integration.
+- the Maven build keeps the current repository layout and does not require moving sources into `src/main/java`.
+- the Maven build targets Java 21 for IDE compatibility even though the WSL command-line validation environment currently uses OpenJDK 25.
+- `DMNApplet.java` is intentionally excluded from the default Maven build so the modern desktop workflow remains clean.
+
+Useful Maven command:
+
+- `mvn compile`: compile the desktop simulator sources into `target/classes`.
+
+Expected environment split:
+
+- WSL/Linux validation environment: OpenJDK 25 and Maven 3.x.
+- Windows Eclipse integration baseline: Eclipse IDE for Java Developers 2026-03 using Oracle JDK 21.0.10.
+- VSCode integration baseline: open the repository as a Maven Java project with the Java and Maven extensions installed.
+
+Why Java 21 is used in Maven:
+
+- JDK 25 in WSL can compile with `--release 21`,
+- Eclipse on Windows using JDK 21 can import and build the same project,
+- VSCode Java tooling is more stable when the project declares a standard Maven compiler target.
+
+Recommended IDE support:
+
+- Eclipse: import the repository as an existing Maven project and select a Java 21 JDK.
+- VSCode: install the `Extension Pack for Java` and `Maven for Java`, then open the repository folder and allow the workspace to import the Maven project.
+
+The Makefiles and launcher scripts remain available in parallel. Maven support is additive and mainly intended to improve interoperability with modern IDEs.
+
+Troubleshooting notes:
+
+- Eclipse:
+  - if the project imports but shows compiler errors, verify that the workspace or project JRE is a full JDK 21 and not only a JRE,
+  - if Maven configuration is not picked up, run `Maven > Update Project...` inside Eclipse,
+  - if the build path looks inconsistent, confirm that Eclipse is importing the repository as a Maven project, not only as a plain existing project.
+- VSCode:
+  - if Java packages are unresolved, make sure the Java extensions finish importing the Maven project before editing,
+  - if the wrong JDK is selected, configure a Java 21 runtime for the workspace or project,
+  - if Maven actions are missing, confirm that both the Java extension pack and the Maven extension are installed.
+
+Official references:
+
+- OpenJDK:
+  - OpenJDK main site: <https://openjdk.org/>
+  - OpenJDK install notes: <https://openjdk.org/install/>
+  - JDK 25 project page: <https://openjdk.org/projects/jdk/25/>
+- Oracle JDK:
+  - Oracle Java downloads: <https://www.oracle.com/java/technologies/javase-downloads.html>
+  - Oracle JDK 21 installation guide: <https://docs.oracle.com/en/java/javase/21/install/>
+- Eclipse:
+  - Eclipse IDE for Java Developers 2026-03: <https://www.eclipse.org/downloads/packages/release/2026-03/r/eclipse-ide-java-developers>
+  - Eclipse packages overview: <https://www.eclipse.org/downloads/packages/>
+- VSCode:
+  - Getting started with Java in VS Code: <https://code.visualstudio.com/docs/java/java-tutorial>
+  - Java build tools in VS Code: <https://code.visualstudio.com/docs/java/java-build>
+  - Managing Java projects in VS Code: <https://code.visualstudio.com/docs/java/java-project>
+  - Java extensions overview: <https://code.visualstudio.com/docs/java/extensions>
+  - Extension Pack for Java: <https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack>
+  - Maven for Java: <https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-maven>
+
+## JDK 25 Notes
+
+This branch has been tested with OpenJDK 25 on Linux and Windows-oriented launch workflows.
+
+Important behavior changes relative to the historical branch:
+
+- the default build no longer writes `.class` files into the source directories,
+- the default build no longer depends on the old recursive package compilation order,
+- the desktop source compiles cleanly under `javac` with strict warning flags on JDK 25,
+- the applet source still compiles, but modern OpenJDK no longer includes `appletviewer`.
+
+The `make appletexec` target is therefore intentionally replaced with an informational message rather than a runnable applet command.
+
+Current limitation:
+
+- `DMNApplet.java` is intentionally kept as historical applet-era code and still uses `java.applet.Applet` and the old `handleEvent(Event)` style,
+- this means the desktop build is modernized, but the applet entry point remains a legacy compatibility artifact in this branch,
+- for the detailed migration record of the desktop event refactor, see `00-Doc/Java25EventChanges.txt`.
+
+## Legacy Reference
+
+The preserved Java 1.0-era state of the project should be considered part of the `LegacyCode` branch.
+
+That legacy branch is the place to look for:
+
+- the original Java 1.0 / Java 1.0.1 codebase as preserved,
+- the historical recursive Makefiles,
+- the checked-in `.class` files as part of the original distribution model,
+- the browser/applet deployment assumptions,
+- the original build and runtime expectations.
+
+Historical Java reference:
+
+- the original code dates from 1996 and targets Java 1.0.1-era APIs,
+- a historically compatible reference JDK is [`YujiSoftware/JDK1.0`](https://github.com/YujiSoftware/JDK1.0), whose README identifies it as Java 1.0.2,
+- that legacy JDK may be useful for historical runtime comparisons, but it is not the target of the modernized build in this branch.
+
+Last Edit: 2026-04-20

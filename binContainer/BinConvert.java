@@ -12,23 +12,23 @@ package binContainer;
 
 public class BinConvert {
 
-	public static Byte wordToUpperByte(Word w) {
-		Byte b = new Byte();
+	public static DmnByte wordToUpperByte(Word w) {
+		DmnByte b = new DmnByte();
 		for(int i = 0; i < 8; i++)
 			if(w.bits.get(i + 8))
 				b.bits.set(i);
 		return b;
 	}
 
-	public static Byte wordToLowerByte(Word w) {
-		Byte b = new Byte();
+	public static DmnByte wordToLowerByte(Word w) {
+		DmnByte b = new DmnByte();
 		for(int i = 0; i < 8; i++)
 			if(w.bits.get(i))
 				b.bits.set(i);
 		return b;
 	}
 
-	public static Nibble byteToUpperNibble(Byte b) {
+	public static Nibble byteToUpperNibble(DmnByte b) {
 		Nibble n = new Nibble();
 		for(int i = 0; i < 4; i++)
 			if(b.bits.get(i + 4))
@@ -36,7 +36,7 @@ public class BinConvert {
 		return n;
 	}
 
-	public static Nibble byteToLowerNibble(Byte b) {
+	public static Nibble byteToLowerNibble(DmnByte b) {
 		Nibble n = new Nibble();
 		for(int i = 0; i < 4; i++)
 			if(b.bits.get(i))

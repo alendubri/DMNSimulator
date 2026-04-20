@@ -98,11 +98,11 @@ public class ClockCanvas extends Canvas implements Runnable {
 		this.start();
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return d;
 	}
 
-	public Dimension preferredSize() {
-		return minimumSize();
+	public Dimension getPreferredSize() {
+		return getMinimumSize();
 	}
 }

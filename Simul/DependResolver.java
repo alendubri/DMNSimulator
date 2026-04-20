@@ -19,12 +19,12 @@ import memory.*;
 public class DependResolver {
 
 	RegFileMemory rFile;
-	public Byte [] aReg = new Byte[2];
-	public Byte [] bReg = new Byte[2];
+	public DmnByte [] aReg = new DmnByte[2];
+	public DmnByte [] bReg = new DmnByte[2];
 	public Nibble sla, slb;
 	ByteQueue rldi;
 	NibbleQueue wbQueue;
-	Byte xReg;
+	DmnByte xReg;
 	public boolean depL1, depL2;
 	public boolean depAL1, depAL2;
 	public boolean depBL1, depBL2;
@@ -33,8 +33,8 @@ public class DependResolver {
 		sla = new Nibble();
 		slb = new Nibble();
 		for(int i = 0; i < 2; i++) {
-			aReg[i] = new Byte();
-			bReg[i] = new Byte();
+			aReg[i] = new DmnByte();
+			bReg[i] = new DmnByte();
 		}
 		depL1 = depL2 = false;
 		depAL1 = depAL2 = depBL1 = depBL2 = false;
@@ -51,17 +51,17 @@ public class DependResolver {
 		depAL1 = depAL2 = depBL1 = depBL2 = false;
 	}
 
-	public void fetchSelector(Byte b) {
+	public void fetchSelector(DmnByte b) {
 		sla.setValue((BinConvert.byteToUpperNibble(b)).intValue());
 		slb.setValue((BinConvert.byteToLowerNibble(b)).intValue());
 	}
 
 	public void setParameters(
 		RegFileMemory rf,
-		Byte xr,
+		DmnByte xr,
 		ByteQueue rldiq,
 		NibbleQueue wbq,
-		Byte sByte)
+		DmnByte sByte)
 	{
 		this.setParameters(rf,xr,rldiq,wbq);
 		this.fetchSelector(sByte);
@@ -69,7 +69,7 @@ public class DependResolver {
 
 	public void setParameters(
 		RegFileMemory rf,
-		Byte xr,
+		DmnByte xr,
 		ByteQueue rldiq,
 		NibbleQueue wbq)
 	{
@@ -127,7 +127,7 @@ public class DependResolver {
 
 	public void resolve(
 		RegFileMemory rf,
-		Byte xr,
+		DmnByte xr,
 		ByteQueue rldiq,
 		NibbleQueue wbq)
 	{
@@ -137,10 +137,10 @@ public class DependResolver {
 		
 	public void resolve(
 		RegFileMemory rf,
-		Byte xr,
+		DmnByte xr,
 		ByteQueue rldiq,
 		NibbleQueue wbq,
-		Byte sByte)
+		DmnByte sByte)
 	{
 		this.setParameters(rf,xr,rldiq,wbq);
 		this.fetchSelector(sByte);

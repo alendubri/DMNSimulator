@@ -32,12 +32,12 @@ public class RegisterPanel extends Panel {
 		this.add("Center",lst);
 	}
 
-	public Dimension minimumSize() {
+	public Dimension getMinimumSize() {
 		return(dim);
 	}
 
-	public Dimension preferredSize() {
-		return(minimumSize());
+	public Dimension getPreferredSize() {
+		return(getMinimumSize());
 	}
 }
 

@@ -85,7 +85,7 @@ public class Assembler {
 		if(assembOk){
 			String [] stArr = new String[numOp];
 			for(int i = 0 ; i < numOp; i++){
-				Byte b = new Byte(opcodes[i].dir);
+				DmnByte b = new DmnByte(opcodes[i].dir);
 				Word w = new Word(opcodes[i].opcode);
 				switch(dataRep) {
 				case HEX:
@@ -455,15 +455,10 @@ public class Assembler {
 	}
 
 	private String cleanSpaces(String st){
-		int cap = st.length();
-		Vector v = new Vector();
-		for(int i=0; i<cap; i++)
-			if(st.charAt(i) != ' '){
-				v.addElement(new Character(st.charAt(i)));
-			}
 		StringBuffer sb = new StringBuffer();
-		for(int i=0;i < v.size();i++)
-			sb = new StringBuffer(sb.toString() + ((Character)v.elementAt(i)).toString());
+		for(int i = 0; i < st.length(); i++)
+			if(st.charAt(i) != ' ')
+				sb.append(st.charAt(i));
 		return sb.toString();
 	}
 

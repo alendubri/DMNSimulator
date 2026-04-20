@@ -11,6 +11,10 @@ a la 1.5
 package GUI;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import memory.*;
 import binContainer.*;
 
@@ -26,73 +30,68 @@ public class DataMemList extends List {
 		dMem = dm;
 		size = dMem.getCapMemory();
 		for(int i = 0; i < size; i++){
-			Byte b = (Byte)dMem.readMemory(i);
-			Byte d = new Byte(i);
-			this.addItem(d.toHexString() + ":" + b.toString());
+			DmnByte b = (DmnByte)dMem.readMemory(i);
+			DmnByte d = new DmnByte(i);
+			this.add(d.toHexString() + ":" + b.toString());
 		}
+		addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openSelectedLocation();
+			}
+		});
 	}
 
 	public void refreshItemsDec() {
 		for(int i = 0; i < size; i++){
-			Byte b = (Byte)dMem.readMemory(i);
-			Byte d = new Byte(i);
+			DmnByte b = (DmnByte)dMem.readMemory(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + b.toString(),i);
 		}
 	}
 
 	public void refreshItemsDec(int pos) {
-		Byte b = (Byte)dMem.readMemory(pos);
-		Byte d = new Byte(pos);
+		DmnByte b = (DmnByte)dMem.readMemory(pos);
+		DmnByte d = new DmnByte(pos);
 		this.replaceItem(d.toHexString() + ":" + b.toString(),pos);
 	}
 
 	public void refreshItemsHex() {
 		for(int i = 0; i < size; i++){
-			Byte b = (Byte)dMem.readMemory(i);
-			Byte d = new Byte(i);
+			DmnByte b = (DmnByte)dMem.readMemory(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + b.toHexString(),i);
 		}
 	}
 
 	public void refreshItemsHex(int pos) {
-		Byte b = (Byte)dMem.readMemory(pos);
-		Byte d = new Byte(pos);
+		DmnByte b = (DmnByte)dMem.readMemory(pos);
+		DmnByte d = new DmnByte(pos);
 		this.replaceItem(d.toHexString() + ":" + b.toHexString(),pos);
 	}
 
 	public void refreshItemsBin() {
 		for(int i = 0; i < size; i++){
-			Byte b = (Byte)dMem.readMemory(i);
-			Byte d = new Byte(i);
+			DmnByte b = (DmnByte)dMem.readMemory(i);
+			DmnByte d = new DmnByte(i);
 			this.replaceItem(d.toHexString() + ":" + b.toBinaryString(),i);
 		}
 	}
 
 	public void refreshItemsBinary(int pos) {
-		Byte b = (Byte)dMem.readMemory(pos);
-		Byte d = new Byte(pos);
+		DmnByte b = (DmnByte)dMem.readMemory(pos);
+		DmnByte d = new DmnByte(pos);
 		this.replaceItem(d.toHexString() + ":" + b.toBinaryString(),pos);
 	}
 
-	public boolean handleEvent(Event event) {
-		switch(event.id) {
-		case Event.LIST_SELECT:{
-		}break;
-		case Event.LIST_DESELECT:{
-		}break;
-		case Event.ACTION_EVENT:{
-			if(event.target instanceof List) {
-				if(isSelected(getSelectedIndex())){
-					ChangeDMemDialog cd = new ChangeDMemDialog(fSim,getSelectedIndex());
-					cd.pack();
-					cd.show();
-				}
-			}
-		}break;
-		default:
+	private void openSelectedLocation() {
+		int selectedIndex = getSelectedIndex();
+		if ((selectedIndex >= 0) && isIndexSelected(selectedIndex)) {
+			ChangeDMemDialog cd = new ChangeDMemDialog(fSim,selectedIndex);
+			cd.pack();
+			WindowUtil.centerOnScreen(cd);
+			cd.setVisible(true);
 		}
-		return super.handleEvent(event);
-	}    
+	}
 
 
 }
@@ -106,13 +105,14 @@ class ChangeDMemDialog extends Dialog {
 	DMNFrame fSim;
 	TextField bVal;
 	int mLoc;
+	Button changeButton, cancelButton;
 
 	public ChangeDMemDialog(DMNFrame f,int loc) {
 		super(f,"Change Data Memory Location",true);
 		fSim = f;
 		mLoc = loc;
 		this.setLayout(new GridLayout(4,1));
-		String locSt = "Change Location at address :" + (new Byte(loc)).toHexString();
+		String locSt = "Change Location at address :" + (new DmnByte(loc)).toHexString();
 		String repSt = new String();
 		bVal = new TextField();
 		switch(fSim.dRep) {
@@ -135,64 +135,78 @@ class ChangeDMemDialog extends Dialog {
 		Panel q = new Panel();
 		p.add(new Label("Enter New Value:"));
 		p.add(bVal);
-		q.add(new Button("Change"));
-		q.add(new Button("Cancel"));
+		q.add(changeButton = new Button("Change"));
+		q.add(cancelButton = new Button("Cancel"));
 		this.setFont(new Font("Fixed",Font.BOLD,14));
 		this.add(new Label(locSt,Label.CENTER));
 		this.add(new Label(repSt + " representation.",Label.CENTER));
 		this.add(p);
 		this.add(q);
+		registerListeners();
 	}
 
-	protected void finalize(){
-		this.hide();
+	private void closeDialog(){
+		setVisible(false);
+		dispose();
 	}
 
-	public boolean action(Event e, Object w){
-		if("Cancel".equals(e.arg)){
-			this.finalize();
-		}
-		else if("Change".equals(e.arg)){
-			try{
-				int val;
-				switch(fSim.dRep){
-				case DEC: 
-					val = Integer.parseInt(bVal.getText()); 
-					if((val < 0) || (val > 0xff))
-						putNumber();
-					else {
-						fSim.simul.dMemory.writeMemory(new Byte(val),mLoc);
-						fSim.dmlst.refreshItemsDec(mLoc);
-						this.finalize();
-					}
-					break;
-				case HEX: 
-					val = Integer.parseInt(bVal.getText(),16); 
-					if((val < 0) || (val > 0xff))
-						putNumber();
-					else {
-						fSim.simul.dMemory.writeMemory(new Byte(val),mLoc);
-						fSim.dmlst.refreshItemsHex(mLoc);
-						this.finalize();
-					}
-					break;
-				case BIN: 
-					val = Integer.parseInt(bVal.getText(),2); 
-					if((val < 0) || (val > 0xff))
-						putNumber();
-					else {
-						fSim.simul.dMemory.writeMemory(new Byte(val),mLoc);
-						fSim.dmlst.refreshItemsBinary(mLoc);
-						this.finalize();
-					}
-					break;
+	private void registerListeners() {
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				closeDialog();
+			}
+		});
+		cancelButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				closeDialog();
+			}
+		});
+		changeButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				changeValue();
+			}
+		});
+	}
+
+	private void changeValue() {
+		try{
+			int val;
+			switch(fSim.dRep){
+			case DEC: 
+				val = Integer.parseInt(bVal.getText()); 
+				if((val < 0) || (val > 0xff))
+					putNumber();
+				else {
+					fSim.simul.dMemory.writeMemory(new DmnByte(val),mLoc);
+					fSim.dmlst.refreshItemsDec(mLoc);
+					closeDialog();
 				}
-			}
-			catch(java.lang.NumberFormatException excp){
-				putNumber();
+				break;
+			case HEX: 
+				val = Integer.parseInt(bVal.getText(),16); 
+				if((val < 0) || (val > 0xff))
+					putNumber();
+				else {
+					fSim.simul.dMemory.writeMemory(new DmnByte(val),mLoc);
+					fSim.dmlst.refreshItemsHex(mLoc);
+					closeDialog();
+				}
+				break;
+			case BIN: 
+				val = Integer.parseInt(bVal.getText(),2); 
+				if((val < 0) || (val > 0xff))
+					putNumber();
+				else {
+					fSim.simul.dMemory.writeMemory(new DmnByte(val),mLoc);
+					fSim.dmlst.refreshItemsBinary(mLoc);
+					closeDialog();
+				}
+				break;
 			}
 		}
-		return true;
+		catch(java.lang.NumberFormatException excp){
+			putNumber();
+		}
 	}
 
 	private void putNumber() {

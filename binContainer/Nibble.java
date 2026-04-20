@@ -26,8 +26,8 @@ public class Nibble extends Word {
 		super(n,4);
 	}
 
-	public Byte toByte() {
-		Byte b = new Byte();
+	public DmnByte toByte() {
+		DmnByte b = new DmnByte();
 		b.nbits = 8;
 		b.bits = (BitSet)this.bits.clone();
 		return b;

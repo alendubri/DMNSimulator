@@ -17,6 +17,7 @@ import java.awt.BorderLayout;
 import java.applet.Applet;
 import java.net.URL;
 
+@SuppressWarnings({"deprecation", "removal"})
 public class DMNApplet extends Applet {
 	DMNFrame dmnSim;
 
@@ -26,7 +27,7 @@ public class DMNApplet extends Applet {
 
 	public void init() {
 		setLayout(new BorderLayout(2,2));
-		resize(200,50);
+		setSize(200,50);
 		Button but = new Button(STARTSIM);
 		but.setFont(new Font("Helvetica", Font.BOLD, 14));
 		add("Center",but);
@@ -40,7 +41,7 @@ public class DMNApplet extends Applet {
 			dmnSim.urlBase = urlBase;
 			dmnSim.init();
 			dmnSim.pack();
-			dmnSim.show();
+			dmnSim.setVisible(true);
 		}
 		return super.handleEvent(e);
 	}

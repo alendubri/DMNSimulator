@@ -30,6 +30,14 @@ Initial revision
 package GUI;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import binContainer.*;
 import memory.*;
 import Simul.*;
@@ -57,6 +65,9 @@ public class DMNFrame extends Frame {
 	final int	DEC = 1;
 	final int	HEX = 2;
 	final int	BIN = 3;	
+	final int	RUN_STOP = 1;
+	final int	RUN_PLAY = 2;
+	final int	RUN_PAUSE = 3;
 
 //------------------------------------------------------------------------------
 
@@ -77,6 +88,7 @@ public class DMNFrame extends Frame {
 	MainMenu mainMenu;
 	Panel [] panels    = new Panel[7];
 	Dialog aboutDl;
+	Button aboutOkButton;
 	PCQPanel	infpan;
 	RegisterPanel [] memView = new RegisterPanel[3];
 	RegisterList rlist;
@@ -89,6 +101,7 @@ public class DMNFrame extends Frame {
 	public int nInst;
 	DataInputStream dis;
 	FNFDialog fnfdial;
+	int runMode = RUN_STOP;
 
 //------------------------------------------------------------------------------
 
@@ -103,7 +116,7 @@ public class DMNFrame extends Frame {
 	public DMNFrame(){
 		super("SimDMN");
 
-		this.resize(600,600);
+		this.setSize(600,600);
 		this.setBackground(new Color(0x00,0x8b,0x8b));
 		this.setForeground(Color.black);
 		this.setFont(new Font("Helvetica", Font.PLAIN, 14));
@@ -122,11 +135,12 @@ public class DMNFrame extends Frame {
 		this.imlst.setBackground(Color.white);
 		this.imlst.setForeground(Color.black);
 
-		this.mainMenu = new MainMenu(super);
+		this.mainMenu = new MainMenu(this);
 
 		this.setInitialPanelGeometry(); 
 		this.setInitialComponents();
 		this.setDialogs();
+		this.registerListeners();
 	}
 //------------------------------------------------------------------------------
 
@@ -229,8 +243,8 @@ public class DMNFrame extends Frame {
 		p1.add(new Label(ABOUT_LAB3,Label.CENTER));
 		p1.add(new Label(ABOUT_LAB4,Label.CENTER));
 		aboutDl.add("North",p1);
-		aboutDl.add("South",new Button(OKDL));
-		aboutDl.resize(250,200);
+		aboutDl.add("South",aboutOkButton = new Button(OKDL));
+		aboutDl.setSize(250,200);
 		aboutDl.setResizable(false);
 	}
 //------------------------------------------------------------------------------
@@ -262,10 +276,282 @@ public class DMNFrame extends Frame {
 
 	private void quitConfirm() {
 		QuitDialog qDialog = new QuitDialog(this,this);
-		qDialog.resize(250,150);
-		qDialog.show();
+		qDialog.setSize(250,150);
+		WindowUtil.centerOnScreen(qDialog);
+		qDialog.setVisible(true);
 	}
 
+	private void registerListeners() {
+		this.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				quitConfirm();
+			}
+		});
+
+		aboutOkButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				aboutDl.setVisible(false);
+			}
+		});
+		aboutDl.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				aboutDl.setVisible(false);
+			}
+		});
+
+		mainMenu.quitItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				quitConfirm();
+			}
+		});
+		mainMenu.aboutItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				WindowUtil.centerOnScreen(aboutDl);
+				aboutDl.setVisible(true);
+			}
+		});
+		mainMenu.osrcItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openSourceDialog();
+			}
+		});
+		mainMenu.obinItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openBinaryDialog();
+			}
+		});
+		mainMenu.esrcItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openEditor(false);
+			}
+		});
+		mainMenu.ecurItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openEditor(true);
+			}
+		});
+		mainMenu.stepItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				stepSimulation();
+			}
+		});
+		mainMenu.resetItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				resetSimulation();
+			}
+		});
+
+		mainMenu.mneChk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				nmeOn = mainMenu.mneChk.getState();
+				refreshInstructionMemoryView();
+			}
+		});
+		mainMenu.decChk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleDataRepresentationSelection(DEC, e.getStateChange());
+			}
+		});
+		mainMenu.hexChk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleDataRepresentationSelection(HEX, e.getStateChange());
+			}
+		});
+		mainMenu.binChk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleDataRepresentationSelection(BIN, e.getStateChange());
+			}
+		});
+		mainMenu.stChk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunMenuSelection(RUN_STOP, e.getStateChange());
+			}
+		});
+		mainMenu.plChk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunMenuSelection(RUN_PLAY, e.getStateChange());
+			}
+		});
+		mainMenu.psChk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunMenuSelection(RUN_PAUSE, e.getStateChange());
+			}
+		});
+
+		stPan.cbSim[0].addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				if (stPan.cbSim[0].getState()) setRunMode(RUN_STOP);
+			}
+		});
+		stPan.cbSim[1].addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				if (stPan.cbSim[1].getState()) setRunMode(RUN_PLAY);
+			}
+		});
+		stPan.cbSim[2].addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				if (stPan.cbSim[2].getState()) setRunMode(RUN_PAUSE);
+			}
+		});
+		stPan.stepButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				stepSimulation();
+			}
+		});
+		stPan.resetButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				resetSimulation();
+			}
+		});
+		stPan.intrcv.addMouseListener(new MouseAdapter() {
+			public void mousePressed(MouseEvent e) {
+				simul.intrAck();
+				repaint();
+			}
+		});
+	}
+
+	private void handleDataRepresentationSelection(int representation, int stateChange) {
+		if (stateChange == ItemEvent.SELECTED) {
+			setDataRepresentation(representation);
+		} else {
+			syncDataRepresentationMenu();
+		}
+	}
+
+	private void handleRunMenuSelection(int mode, int stateChange) {
+		if (stateChange == ItemEvent.SELECTED) {
+			setRunMode(mode);
+		} else {
+			syncRunControls();
+		}
+	}
+
+	private void openSourceDialog() {
+		if (!inAnApplet) {
+			FileDialog fd = new FileDialog(this,"Open DMN Source",FileDialog.LOAD);
+			fd.pack();
+			fd.setVisible(true);
+			if((fd.getDirectory()!= null)&&(fd.getFile()!=null)) {
+				if(createDataInputStream(fd.getDirectory(),fd.getFile()))
+					openDMNSource();
+				else
+					showFileOpenError("Couldn't open DMN Source");
+			}
+		}
+		else {
+			NetFileDialog nfdial = new NetFileDialog(this,"Open DMN Source",false);
+			nfdial.pack();
+			WindowUtil.centerOnScreen(nfdial);
+			nfdial.setVisible(true);
+		}
+	}
+
+	private void openBinaryDialog() {
+		if (!inAnApplet) {
+			FileDialog fd = new FileDialog(this,"Open DMN Binary",FileDialog.LOAD);
+			fd.pack();
+			fd.setVisible(true);
+			if((fd.getDirectory()!= null)&&(fd.getFile()!=null)) {
+				if(createDataInputStream(fd.getDirectory(),fd.getFile()))
+					openDMNBinary();
+				else
+					showFileOpenError("Couldn't open DMN Binary");
+			}
+		}
+		else {
+			NetFileDialog nfdial = new NetFileDialog(this,"Open DMN Binary",true);
+			nfdial.pack();
+			WindowUtil.centerOnScreen(nfdial);
+			nfdial.setVisible(true);
+		}
+	}
+
+	private void openEditor(boolean currentProgram) {
+		EditorFrame edFrame;
+		if (currentProgram) edFrame = new EditorFrame(this,true);
+		else edFrame = new EditorFrame(this);
+		edFrame.pack();
+		WindowUtil.centerOnScreen(edFrame);
+		edFrame.setVisible(true);
+	}
+
+	private void showFileOpenError(String message) {
+		fnfdial = new FNFDialog(this,message);
+		fnfdial.pack();
+		WindowUtil.centerOnScreen(fnfdial);
+		fnfdial.setVisible(true);
+	}
+
+	private void setRunMode(int mode) {
+		runMode = mode;
+		switch(mode) {
+		case RUN_PLAY:
+			this.clkCvn.start();
+			this.repaint();
+			break;
+		case RUN_STOP:
+		case RUN_PAUSE:
+			this.clkCvn.stop();
+			break;
+		default:
+			return;
+		}
+		syncRunControls();
+	}
+
+	private void syncRunControls() {
+		mainMenu.stChk.setState(runMode == RUN_STOP);
+		mainMenu.plChk.setState(runMode == RUN_PLAY);
+		mainMenu.psChk.setState(runMode == RUN_PAUSE);
+		stPan.cbSim[0].setState(runMode == RUN_STOP);
+		stPan.cbSim[1].setState(runMode == RUN_PLAY);
+		stPan.cbSim[2].setState(runMode == RUN_PAUSE);
+	}
+
+	private void stepSimulation() {
+		setRunMode(RUN_STOP);
+		this.clkCvn.step();
+	}
+
+	private void resetSimulation() {
+		simul.reset();
+		this.repaint();
+		this.rFileRefresh();
+	}
+
+	private void setDataRepresentation(int representation) {
+		dRep = representation;
+		syncDataRepresentationMenu();
+		switch(dRep) {
+			case DEC:
+				rlist.refreshItemsDec();
+				break;
+			case HEX:
+				rlist.refreshItemsHex();
+				break;
+			case BIN:
+				rlist.refreshItemsBin();
+				break;
+		}
+		this.repaint();
+		this.dataMemRefresh();
+		if (!nmeOn) this.instMemRefresh();
+	}
+
+	private void syncDataRepresentationMenu() {
+		mainMenu.decChk.setState(dRep == DEC);
+		mainMenu.hexChk.setState(dRep == HEX);
+		mainMenu.binChk.setState(dRep == BIN);
+	}
+
+	private void refreshInstructionMemoryView() {
+		mainMenu.mneChk.setState(nmeOn);
+		this.repaint();
+		if (nmeOn) this.imlst.refreshItemsNme();
+		else this.instMemRefresh();
+	}
+	
 	public boolean createDataInputStream(String dir,String file){
 		if((dir != null)&&(file != null)){
 			File iFile = new File(dir,file);
@@ -281,15 +567,15 @@ public class DMNFrame extends Frame {
 	}
 
 	public boolean createDataInputStream(String file){
-		String urlSt;
 		if(file != null){
 			try{
 
-				urlSt = urlBase.getProtocol()+"://"+urlBase.getHost()+"/"+ file;
-
-				nFile = new URL(urlSt);
+				nFile = urlBase.toURI().resolve(file).toURL();
 				dis = new DataInputStream(nFile.openStream());
 				return true;
+			}
+			catch(java.net.URISyntaxException e){
+				return false;
 			}
 			catch(java.net.MalformedURLException e){
 				return false;
@@ -340,207 +626,34 @@ public class DMNFrame extends Frame {
 		try{
 			int i = 0;
 			String inputLine;
+			BufferedReader reader = new BufferedReader(new InputStreamReader(dis));
 
-			while((inputLine = dis.readLine()) != null){
+			while((inputLine = reader.readLine()) != null){
 				if(i <= 0xff)
 					sb.append(inputLine + "\n");
 				i++;
 			}
 
-			dis.close();
+			reader.close();
 		}
 		catch(java.io.IOException e){
 			return false;
 		}
 		EditorFrame edSrc = new EditorFrame(this,sb.toString());
 		edSrc.pack();
-		edSrc.show();
+		WindowUtil.centerOnScreen(edSrc);
+		edSrc.setVisible(true);
 		return true;
 	}
 
-//------------------------------------------------------------------------------
-// Manejador de Eventos
-//------------------------------------------------------------------------------
-	public boolean handleEvent(Event event) {
-		if (event.id == Event.WINDOW_DESTROY) {
-			quitConfirm();
-		}
-		else if(event.target instanceof RunCheckbox) {
-			if(stPan.cbSim[0].getState()) {
-				this.clkCvn.stop();
-				mainMenu.plChk.setState(false);
-				mainMenu.stChk.setState(true);
-				mainMenu.psChk.setState(false);
-			}
-			else if(stPan.cbSim[1].getState()) {
-				mainMenu.plChk.setState(true);
-				mainMenu.stChk.setState(false);
-				mainMenu.psChk.setState(false);
-				this.clkCvn.start();
-				this.repaint();
-			}
-			else if(stPan.cbSim[2].getState()) {
-				this.clkCvn.stop();
-				mainMenu.plChk.setState(false);
-				mainMenu.stChk.setState(false);
-				mainMenu.psChk.setState(true);
-			}
-		}
-		else if(event.target instanceof IntrCanvas) {
-			if(event.id == Event.MOUSE_DOWN) {
-				simul.intrAck();
-				this.repaint();
-			}
-		}
-		else if (event.id == Event.ACTION_EVENT) {
-			if (MainMenu.QUIT.equals(event.arg)) {
-				quitConfirm();
-			}
-			if ("Yes".equals(event.arg)){
-				aboutDl.hide();
-				finalize();
-			}
-			else if(MainMenu.ABUT.equals(event.arg)){
-				aboutDl.show();
-			}
-			else if(MainMenu.OSRC.equals(event.arg)){
-				boolean ok;
-				if (!inAnApplet) {
-					FileDialog fd = new FileDialog(this,"Open DMN Source",FileDialog.LOAD);
-					fd.pack();
-					fd.show();
-					if((fd.getDirectory()!= null)&&(fd.getFile()!=null))
-						if(createDataInputStream(fd.getDirectory(),fd.getFile()))
-							ok = openDMNSource();
-						else {
-							fnfdial = new FNFDialog(this,"Couldn't open DMN Source");
-							fnfdial.pack();
-							fnfdial.show();
-						}
-				}
-				else {
-					NetFileDialog nfdial = new NetFileDialog(this,"Open DMN Source",false);
-					nfdial.pack();
-					nfdial.show();
-				}
-			}
-			else if(MainMenu.OBIN.equals(event.arg)){
-				boolean ok;
-				if (!inAnApplet) {
-					FileDialog fd = new FileDialog(this,"Open DMN Binary",FileDialog.LOAD);
-					fd.pack();
-					fd.show();
-					if((fd.getDirectory()!= null)&&(fd.getFile()!=null))
-						if(createDataInputStream(fd.getDirectory(),fd.getFile()))
-							ok = openDMNBinary();
-						else {
-							fnfdial = new FNFDialog(this,"Couldn't open DMN Binary");
-							fnfdial.pack();
-							fnfdial.show();
-						}
-				}
-				else {
-					NetFileDialog nfdial = new NetFileDialog(this,"Open DMN Binary",true);
-					nfdial.pack();
-					nfdial.show();
-				}
-			}
-			else if(MainMenu.ESRC.equals(event.arg)){
-				EditorFrame edFrame = new EditorFrame(this);
-				edFrame.pack();
-				edFrame.show();
-			}
-			else if(MainMenu.ECUR.equals(event.arg)){
-				EditorFrame edFrame = new EditorFrame(this,true);
-				edFrame.pack();
-				edFrame.show();
-			}
-			else if(MainMenu.PLAY.equals(event.arg)){
-				mainMenu.plChk.setState(true);
-				mainMenu.stChk.setState(false);
-				mainMenu.psChk.setState(false);
-				stPan.cbSim[1].setState(true);
-				this.clkCvn.start();
-				this.repaint();
-			}
-			else if(MainMenu.STOP.equals(event.arg)){
-				this.clkCvn.stop();
-				mainMenu.plChk.setState(false);
-				mainMenu.stChk.setState(true);
-				mainMenu.psChk.setState(false);
-				stPan.cbSim[0].setState(true);
-			}
-			else if(MainMenu.PAUS.equals(event.arg)){
-				this.clkCvn.stop();
-				mainMenu.plChk.setState(false);
-				mainMenu.stChk.setState(false);
-				mainMenu.psChk.setState(true);
-				stPan.cbSim[2].setState(true);
-			}
-			else if(MainMenu.REST.equals(event.arg)){
-				simul.reset();
-				this.repaint();
-				this.rFileRefresh();
-			}
-			else if(MainMenu.DDEC.equals(event.arg)){
-				mainMenu.decChk.setState(true);
-				mainMenu.hexChk.setState(false);
-				mainMenu.binChk.setState(false);
-				dRep = DEC;
-				rlist.refreshItemsDec();
-				this.repaint();
-				this.dataMemRefresh();
-				if (!nmeOn) this.instMemRefresh();
-			}
-			else if(MainMenu.DHEX.equals(event.arg)){
-				mainMenu.decChk.setState(false);
-				mainMenu.hexChk.setState(true);
-				mainMenu.binChk.setState(false);
-				dRep = HEX;
-				rlist.refreshItemsHex();
-				this.repaint();
-				this.dataMemRefresh();
-				if (!nmeOn) this.instMemRefresh();
-			}
-			else if(MainMenu.DBIN.equals(event.arg)){
-				mainMenu.decChk.setState(false);
-				mainMenu.hexChk.setState(false);
-				mainMenu.binChk.setState(true);
-				dRep = BIN;
-				rlist.refreshItemsBin();
-				this.repaint();
-				this.dataMemRefresh();
-				if (!nmeOn) this.instMemRefresh();
-			}
-			else if(MainMenu.STEP.equals(event.arg)){
-				this.clkCvn.stop();
-				mainMenu.plChk.setState(false);
-				mainMenu.stChk.setState(true);
-				mainMenu.psChk.setState(false);
-				stPan.cbSim[0].setState(true);
-				this.clkCvn.step();
-			}
-			else if(OKDL.equals(event.arg)){
-				aboutDl.dispose();
-			}
-			else if(MainMenu.MNEM.equals(event.arg)){
-				nmeOn = !nmeOn;
-				mainMenu.mneChk.setState(nmeOn);
-				this.repaint();
-				if (nmeOn) this.imlst.refreshItemsNme();
-				else this.instMemRefresh();
-			}
-		}
-		return super.handleEvent(event);
-	}
-
 	public void theEnd(){
-		this.finalize();
+		closeFrame();
 	}
 
-	protected void finalize(){
+	private void closeFrame(){
 		if (inAnApplet) {
-			hide();
+			setVisible(false);
+			dispose();
 		} else {
 			System.exit(0);
 		}
@@ -902,6 +1015,7 @@ public class DMNFrame extends Frame {
 class QuitDialog extends Dialog {
 
 	DMNFrame parent;
+	Button yesButton, noButton;
 
 	public QuitDialog(Frame fp, DMNFrame rp) {
 		super(fp,"Confirm SimDMN exit", true);
@@ -914,36 +1028,42 @@ class QuitDialog extends Dialog {
 		p2.add(new Label("to Quit?",Label.CENTER));
 		p2.add(new Panel());
 		Panel p3 = new Panel();
-		p3.add(new Button("Yes"));
-		p3.add(new Button("No"));
+		p3.add(yesButton = new Button("Yes"));
+		p3.add(noButton = new Button("No"));
 		this.add("Center",p2);
 		this.add("South",p3);
+		registerListeners();
 	}
 
-	public boolean handleEvent(Event e){
-		if (e.id == Event.WINDOW_DESTROY){
-			this.finalize();
-		}
-		else if (e.id == Event.ACTION_EVENT){
-			if ("No".equals(e.arg)) {
-				this.finalize();
+	private void registerListeners() {
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				closeDialog();
 			}
-			if ("Yes".equals(e.arg)) {
-				this.finalize();
+		});
+		noButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				closeDialog();
+			}
+		});
+		yesButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				closeDialog();
 				parent.theEnd();
 			}
-		}
-		return super.handleEvent(e);
+		});
 	}
 
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 }
 
 class FNFDialog extends Dialog {
 
 	Dimension d;
+	Button dismissButton;
 
 	public FNFDialog(Frame f,String mesg){
 		super(f,mesg,true);
@@ -953,26 +1073,34 @@ class FNFDialog extends Dialog {
 		this.add(new Label("ERROR:",Label.CENTER));
 		this.add(new Label("Cannot Open File",Label.CENTER));
 		this.add(new Panel());
-		this.add(new Button("Dismiss"));
+		this.add(dismissButton = new Button("Dismiss"));
 		this.d = new Dimension(200,140);
+		registerListeners();
 	}
 
-	public boolean action(Event e, Object w) {
-		if("Dismiss".equals(e.arg)){
-			this.finalize();
-		}
-		return true;
+	private void registerListeners() {
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				closeDialog();
+			}
+		});
+		dismissButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				closeDialog();
+			}
+		});
 	}
 
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 
 	public Dimension minimunSize(){
 		return d;
 	}
 
-	public Dimension preferredSize(){
+	public Dimension getPreferredSize(){
 		return minimunSize();
 	}
 
@@ -986,6 +1114,7 @@ class NetFileDialog extends Dialog {
 	DMNFrame fSim;
 	boolean bin;
 	FNFDialog fnfd;
+	Button openButton, dismissButton;
 
 	public NetFileDialog(DMNFrame f,String mesg,boolean b){
 		super(f,mesg,true);
@@ -1001,51 +1130,64 @@ class NetFileDialog extends Dialog {
 		p.add(new Label("URL to Open:"+ fSim.urlBase.getProtocol()+ "://"+fSim.urlBase.getHost()+"/"));
 		p.add(tf = new TextField());
 		this.add(p);
-		q.add(new Button("Open"));
-		q.add(new Button("Dismiss"));
+		q.add(openButton = new Button("Open"));
+		q.add(dismissButton = new Button("Dismiss"));
 		this.add(q);
 		this.d = new Dimension(500,160);
+		registerListeners();
 	}
 
-	public boolean handleEvent(Event e) {
-		if (e.id == Event.ACTION_EVENT){
-			if("Dismiss".equals(e.arg)){
-				this.finalize();
+	private void registerListeners() {
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				closeDialog();
 			}
-			else if("Open".equals(e.arg)){
-				urlSt = tf.getText();
-				boolean ok = fSim.createDataInputStream(urlSt);
-				if(bin) {
-					if(ok)
-						ok = fSim.openDMNBinary();
-				}
-				else {
-					if(ok)
-						ok = fSim.openDMNSource();
-				}
-				if(!ok) {
-					if(bin) 
-						fnfd = new FNFDialog(fSim,"Couldn't open DMN Binary");
-					else
-						fnfd = new FNFDialog(fSim,"Couldn't open DMN Source");
-					fnfd.pack();
-					fnfd.show();
-				}
-				else this.finalize();
+		});
+		dismissButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				closeDialog();
 			}
+		});
+		openButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openNetworkFile();
+			}
+		});
+	}
+
+	private void openNetworkFile() {
+		urlSt = tf.getText();
+		boolean ok = fSim.createDataInputStream(urlSt);
+		if(bin) {
+			if(ok)
+				ok = fSim.openDMNBinary();
 		}
-		return super.handleEvent(e);
+		else {
+			if(ok)
+				ok = fSim.openDMNSource();
+		}
+		if(!ok) {
+			if(bin) 
+				fnfd = new FNFDialog(fSim,"Couldn't open DMN Binary");
+			else
+				fnfd = new FNFDialog(fSim,"Couldn't open DMN Source");
+			fnfd.pack();
+			WindowUtil.centerOnScreen(fnfd);
+			fnfd.setVisible(true);
+		}
+		else closeDialog();
 	}
 
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 
 	public Dimension minimunSize(){
 		return d;
 	}
 
-	public Dimension preferredSize(){
+	public Dimension getPreferredSize(){
 		return minimunSize();
 	}
 }

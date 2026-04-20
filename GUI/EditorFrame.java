@@ -11,6 +11,10 @@ a la 1.5
 package GUI;
 
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import Assembler.*;
 
 public class EditorFrame extends Dialog {
@@ -20,20 +24,21 @@ public class EditorFrame extends Dialog {
 	Assembler assem;
 	DMNFrame fSim;
 	AssembHelp hlp;
+	Button assembleButton, clearButton, closeButton, helpButton;
 
 	public EditorFrame(DMNFrame pr, boolean editOldProgram){
 		this(pr);
 		if(editOldProgram){
 			int nInst = fSim.nInst;
 			for(int i = 0; i < nInst; i++) {
-				editArea.appendText(fSim.simul.nmeMem[i] + "\n");
+				editArea.append(fSim.simul.nmeMem[i] + "\n");
 			}
 		}
 	}
 
 	public EditorFrame(DMNFrame pr, String editSrc) {
 		this(pr);
-		editArea.appendText(editSrc);
+		editArea.append(editSrc);
 	}
 
 	public EditorFrame(DMNFrame pr){
@@ -51,62 +56,72 @@ public class EditorFrame extends Dialog {
 		q.add("North",new Label("Assembler Messages",Label.CENTER));
 		q.add("Center",errLst = new List(4,false));
 		p.setLayout(new GridLayout(1,4,20,20));
-		p.add(new Button("Assemble"));
-		p.add(new Button("Clear"));
-		p.add(new Button("Close"));
-		p.add(new Button("Help"));
+		p.add(assembleButton = new Button("Assemble"));
+		p.add(clearButton = new Button("Clear"));
+		p.add(closeButton = new Button("Close"));
+		p.add(helpButton = new Button("Help"));
 		q.add("South",p);
 		this.add("Center",o);
 		this.add("South",q);
 		assem = new Assembler();
+		registerListeners();
 	}
 
-	public boolean handleEvent(Event e){
-		if (e.id == Event.WINDOW_DESTROY){
-			this.finalize();
-		}
-		else if (e.id == Event.ACTION_EVENT){
-			if ("Close".equals(e.arg)) {
-				this.finalize();
+	private void registerListeners() {
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				closeDialog();
 			}
-			else if("Assemble".equals(e.arg)) {
+		});
+		closeButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				closeDialog();
+			}
+		});
+		assembleButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
 				assem.assemble(editArea.getText());
 				if(assem.assembOk) {
-					if (errLst.countItems() != 0) errLst.clear();
-					if (binLst.countItems() != 0) binLst.clear();
-					errLst.addItem("Successfully Assembly!!");
+					if (errLst.getItemCount() != 0) errLst.removeAll();
+					if (binLst.getItemCount() != 0) binLst.removeAll();
+					errLst.add("Successfully Assembly!!");
 					String [] assSt = assem.binArray(fSim.dRep);
 					for(int i = 0; i < assem.numOp; i++)
-						binLst.addItem(assSt[i]);
+						binLst.add(assSt[i]);
 					ConfirmAssembDialog cdial = new ConfirmAssembDialog(fSim,assem);
 					cdial.pack();
-					cdial.show();
+					WindowUtil.centerOnScreen(cdial);
+					cdial.setVisible(true);
 				}
 				else {
-					if (errLst.countItems() != 0) errLst.clear();
-					Integer nErr = new Integer(assem.numErr);
-					String errMsg = nErr.toString() + " Error(s) on Assembly.";
-					errLst.addItem(errMsg);
+					if (errLst.getItemCount() != 0) errLst.removeAll();
+					String errMsg = Integer.toString(assem.numErr) + " Error(s) on Assembly.";
+					errLst.add(errMsg);
 					String [] errSt = assem.errMsgArray();
 					for(int i = 0 ; i < assem.numErr; i++)
-						errLst.addItem(errSt[i]);
+						errLst.add(errSt[i]);
 				}
 			}
-			else if("Help".equals(e.arg)) {
+		});
+		helpButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
 				hlp = new AssembHelp(fSim);
 				hlp.pack();
-				hlp.show();
+				WindowUtil.centerOnScreen(hlp);
+				hlp.setVisible(true);
 			}
-			else if("Clear".equals(e.arg)) {
-				this.editArea.setText("");
+		});
+		clearButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				editArea.setText("");
 			}
-		}
-		return super.handleEvent(e);
+		});
 	}
 
-	protected void finalize() {
+	private void closeDialog() {
 		if (hlp != null) hlp.killMe();
-		this.hide();
+		setVisible(false);
+		dispose();
 	}
 }
 
@@ -143,6 +158,8 @@ class AssembHelp extends Dialog {
 		"LDI, ldi or Ldi means the same to the assembler."
 	};
 
+	Button dismissButton;
+
 
 	public AssembHelp(Frame f){
 		super(f,"Help On DMN Architecture",false);
@@ -150,21 +167,31 @@ class AssembHelp extends Dialog {
 		ta.setEditable(false);
 		ta.setFont(new Font("Roman",Font.PLAIN,14));
 		for(int i = 0; i < 28; i++)
-			ta.appendText(hlpTxt[i]);
+			ta.append(hlpTxt[i]);
 		this.add("Center",ta);
-		this.add("South",new Button("Dismiss"));
+		this.add("South",dismissButton = new Button("Dismiss"));
+		registerListeners();
 	}
-	public boolean action(Event e, Object w){
-		if("Dismiss".equals(e.arg)) {
-			this.finalize();
-		}
-		return true;
+
+	private void registerListeners() {
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				closeDialog();
+			}
+		});
+		dismissButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				closeDialog();
+			}
+		});
 	}
+
 	public void killMe(){
-		finalize();
+		closeDialog();
 	}
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 }
 
@@ -172,6 +199,7 @@ class ConfirmAssembDialog extends Dialog {
 
 	DMNFrame fSim;
 	Assembler assem;
+	Button yesButton, noButton;
 
 	public ConfirmAssembDialog(DMNFrame pr, Assembler as){
 		super(pr,"Save on Memory",true);
@@ -184,33 +212,38 @@ class ConfirmAssembDialog extends Dialog {
 		p2.add(new Label("Do you want to save",Label.CENTER));
 		p2.add(new Label("on Instruction Memory?",Label.CENTER));
 		Panel p3 = new Panel();
-		p3.add(new Button("Yes"));
-		p3.add(new Button("No"));
+		p3.add(yesButton = new Button("Yes"));
+		p3.add(noButton = new Button("No"));
 		this.add("Center",p2);
 		this.add("South",p3);
+		registerListeners();
 	}
 
-	public boolean handleEvent(Event e){
-		if (e.id == Event.WINDOW_DESTROY){
-			this.finalize();
-		}
-		else if (e.id == Event.ACTION_EVENT){
-			if ("Yes".equals(e.arg)) {
+	private void registerListeners() {
+		addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				closeDialog();
+			}
+		});
+		yesButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
 					assem.putOnMemory(fSim.simul.iMemory);
 					fSim.simul.nmeConvMem();
 					if (fSim.nmeOn) fSim.imlst.refreshItemsNme();
 					else fSim.instMemRefresh();
 					fSim.nInst = assem.numOp;
-					this.finalize();
+					closeDialog();
 			}
-			else if ("No".equals(e.arg)) {
-				this.finalize();
+		});
+		noButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				closeDialog();
 			}
-		}
-		return true;
+		});
 	}
 
-	protected void finalize() {
-		this.hide();
+	private void closeDialog() {
+		setVisible(false);
+		dispose();
 	}
 }

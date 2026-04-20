@@ -15,13 +15,13 @@ import binContainer.*;
 
 public class ALLU {
 
-	Byte	
+	DmnByte	
 		rA, rB;
 
 	RegFileMemory
 		rFile;
 
-	public Byte
+	public DmnByte
 		xReg, PCR;
 
 	public ByteQueue
@@ -41,8 +41,8 @@ public class ALLU {
 
 	ALLU() {
 		dMemory = new DataMemory();
-		xReg = new Byte();
-		PCR = new Byte();
+		xReg = new DmnByte();
+		PCR = new DmnByte();
 		rldi = new ByteQueue(2);
 		xQueue = new ByteQueue(2);
 		wmem = intr = flush = false;
@@ -61,8 +61,8 @@ public class ALLU {
 	}
 
 	public void setParameters(
-		Byte ra,
-		Byte rb,
+		DmnByte ra,
+		DmnByte rb,
 		RegFileMemory rf,
 		Nibble exs,
 		Nibble sa,
@@ -76,8 +76,8 @@ public class ALLU {
 		selectB = sb;
 	}
 	public void exMux(
-		Byte ra,
-		Byte rb,
+		DmnByte ra,
+		DmnByte rb,
 		RegFileMemory rf,
 		Nibble exs,
 		Nibble sa,
@@ -90,7 +90,7 @@ public class ALLU {
 	public void exMux() {
 		if((rA != null)&&(rB != null)&&(rFile != null)&&(exSelector != null)&&(selectA != null)&&(selectB != null)) {
 			wmem = flush = false;
-			rldi.pushQueue(new Byte(selectA.intValue()*16 + selectB.intValue()));
+			rldi.pushQueue(new DmnByte(selectA.intValue()*16 + selectB.intValue()));
 			int ex = exSelector.intValue();
 			switch (ex) {
 			case 0x00 : { // ADD
@@ -134,17 +134,17 @@ public class ALLU {
 							break;
 			case 0x08 : { // ZTST
 								  if(rA.intValue() == rB.intValue())
-								  	rFile.writeMemory(new Byte(255),Simulator.CNDBT);
+								  	rFile.writeMemory(new DmnByte(255),Simulator.CNDBT);
 								  else
-								  	rFile.writeMemory(new Byte(0),Simulator.CNDBT);
+								  	rFile.writeMemory(new DmnByte(0),Simulator.CNDBT);
 								  xReg.setValue(0);
 			            }
 							break;
 			case 0x09 : { // NTST
 								  if(rA.lt2Complement(rB))
-								  	rFile.writeMemory(new Byte(255),Simulator.CNDBT);
+								  	rFile.writeMemory(new DmnByte(255),Simulator.CNDBT);
 								  else
-								  	rFile.writeMemory(new Byte(0),Simulator.CNDBT);
+								  	rFile.writeMemory(new DmnByte(0),Simulator.CNDBT);
 								  xReg.setValue(0);
 			            }
 							break;
@@ -167,7 +167,7 @@ public class ALLU {
 			            }
 							break;
 			case 0x0e : { // LDR
-								  Byte b = (Byte) dMemory.readMemory(rA.intValue());
+								  DmnByte b = (DmnByte) dMemory.readMemory(rA.intValue());
 								  xReg.setValue(b.intValue());
 			            }
 							break;
@@ -191,7 +191,7 @@ public class ALLU {
 	}
 
 	private void incrPC() {
-		Byte pc = (Byte) rFile.readMemory(Simulator.PCREG);
+		DmnByte pc = (DmnByte) rFile.readMemory(Simulator.PCREG);
 		int wbq = wbQ3.intValue();
 		if (intr) {
 			pc.setValue(rFile.readMemory(Simulator.PSREG).intValue());

@@ -14,20 +14,20 @@ public class ByteQueue extends BinQueue {
 
 	public ByteQueue(int s) {
 		size = s;
-		queue = new Byte[size];
+		queue = new DmnByte[size];
 		for(int i = 0; i < size; i++)
-			queue[i] = new Byte();
+			queue[i] = new DmnByte();
 	}
 
-	public Byte seeTopQueue() {
-		return (Byte) queue[size - 1];
+	public DmnByte seeTopQueue() {
+		return (DmnByte) queue[size - 1];
 	}
 
-	public Byte seeElement(int pos) {
+	public DmnByte seeElement(int pos) {
 		if ((pos >= 0) && (pos < size))
-			return (Byte) queue[pos];
+			return (DmnByte) queue[pos];
 		else
-			return (Byte) queue[0];
+			return (DmnByte) queue[0];
 	}
 
 }
