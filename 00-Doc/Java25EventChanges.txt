@@ -1,0 +1,164 @@
+Java 25 Event Handling Migration Notes
+======================================
+
+Scope
+-----
+This document records the migration from the old AWT 1.0 event model
+to the listener-based event model supported by current JDK releases.
+
+The legacy event model depends on methods such as:
+- handleEvent(Event)
+- action(Event,Object)
+- mouseEnter(Event,...)
+- mouseExit(Event,...)
+- mouseDown(Event,...)
+
+The modern replacement is the AWT 1.1+ listener model:
+- ActionListener for buttons and MenuItem actions
+- ItemListener for Checkbox and CheckboxMenuItem state changes
+- WindowListener / WindowAdapter for close events
+- MouseListener / MouseAdapter for pointer and click handling
+
+
+Modernization Goals
+-------------------
+1. Remove the GUI-side @SuppressWarnings("deprecation") blocks that only exist
+   because of the old AWT 1.0 event model.
+2. Keep behavior stable while changing the event plumbing.
+3. Leave DMNApplet.java unchanged in code for now, but document what would be
+   required if that file is migrated later.
+
+
+Completed Desktop Migration Surface
+-----------------------------------
+1. GUI/DMNFrame.java
+   - The large handleEvent(Event) switch was replaced.
+   - The frame now binds explicit listeners for:
+     - frame close
+     - menu items
+     - menu checkbox items
+     - stage run controls
+     - interrupt canvas
+     - About dialog close button
+
+2. GUI/MainMenu.java
+   - Actionable MenuItem instances are exposed so DMNFrame can bind listeners
+     directly instead of relying on event bubbling and string matching.
+
+3. GUI/StagesPanel.java
+   - RunCheckbox.action(Event,Object) was removed.
+   - IntrCanvas now uses MouseAdapter.
+   - Step and Reset buttons are exposed for direct listener binding.
+
+4. GUI/DataMemList.java
+   - List activation now uses ActionListener.
+   - ChangeDMemDialog now uses button listeners and a WindowListener.
+
+5. GUI/EditorFrame.java
+   - EditorFrame now uses WindowListener and ActionListener.
+   - AssembHelp now uses direct listeners.
+   - ConfirmAssembDialog now uses direct listeners.
+
+6. GUI/DMNFrame.java nested dialogs
+   - QuitDialog
+   - FNFDialog
+   - NetFileDialog
+   These now use ActionListener and WindowListener wiring.
+
+
+Recommended Migration Order
+---------------------------
+Phase 1
+- GUI/MainMenu.java
+- GUI/DMNFrame.java
+- GUI/StagesPanel.java
+  Status: completed
+
+Phase 2
+- GUI/DataMemList.java
+- GUI/EditorFrame.java
+  Status: completed
+
+Phase 3
+- DMNFrame nested dialogs still using the old event model
+  Status: completed
+
+This order keeps the highest-risk dispatch logic under control first, then
+finishes the smaller dialogs and lists afterward.
+
+
+Phase 1 Design
+--------------
+1. DMNFrame becomes the explicit controller for the main window.
+   - Register a WindowAdapter for the frame close button.
+   - Register ActionListener on standard menu items and stage buttons.
+   - Register ItemListener on CheckboxMenuItem and Checkbox controls.
+
+2. Menu handling is moved from string-based global dispatch to direct binding.
+   - MainMenu should keep references to the actionable items.
+   - DMNFrame should call helper methods such as:
+     - setRunMode(...)
+     - setDataRepresentation(...)
+     - openBinaryFromDialog()
+     - openSourceFromDialog()
+     - openEditor(...)
+
+3. Run controls should be synchronized through one state method.
+   - Menu run checkboxes and stage run checkboxes must stay consistent.
+   - Step should force STOP state before stepping once.
+   - Pause and Stop should stop the clock thread without changing unrelated
+     simulator state.
+
+4. IntrCanvas should own its hover/click drawing logic.
+   - Mouse enter / exit updates the highlight.
+   - Mouse press toggles the visible interrupt flag.
+   - DMNFrame still performs the simulator interrupt acknowledge on click.
+
+
+DMNApplet Recommendations
+-------------------------
+DMNApplet.java is intentionally left unchanged in code.
+
+If it is ever migrated later, the required changes are:
+1. Replace handleEvent(Event) with an ActionListener attached to the Start
+   button.
+2. Remove the old Event import.
+3. Keep in mind that this only removes the old event-model dependency.
+4. The class would still extend java.applet.Applet, which is deprecated for
+   removal on modern JDKs.
+5. Therefore, a fully warning-free modern branch requires one of these choices:
+   - keep DMNApplet only as a documented legacy artifact
+   - exclude DMNApplet from the modern build
+   - move applet support to the LegacyCode branch only
+
+
+Validation After Each Phase
+---------------------------
+1. Build with:
+   - make clean && make
+2. Build with stricter warnings:
+   - ./run-dmnsim-dev.sh --build-only
+3. Manual GUI checks:
+   - menu actions still open the same dialogs
+   - Stop / Play / Pause stay synchronized
+   - Step still performs one simulator step
+   - Reset still refreshes register and memory views
+   - the interrupt control still toggles and acknowledges correctly
+
+
+Expected End State
+------------------
+Current state after phases 1 to 3:
+- the GUI code can drop the event-model deprecation suppressions
+- event ownership will be local and explicit
+- behavior will be easier to test and evolve on JDK 25
+- DMNApplet will remain the only legacy-specific area unless it is moved out of
+  the modern build
+
+
+Post-Migration Note
+-------------------
+The last non-applet JDK 25 warning after the GUI migration was unrelated to
+event handling: the deprecated URL(URL,String) constructor in GUI/DMNFrame.java.
+That constructor has also been replaced, so the desktop build now compiles
+cleanly under the strict developer build.

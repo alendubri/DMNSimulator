@@ -47,6 +47,11 @@ public class MainMenu {
 	static final String ABUT = "About ... ";
 
 	MenuBar menuBar;
+	public MenuItem obinItem, osrcItem,
+	       quitItem,
+	       esrcItem, ecurItem,
+	       stepItem, resetItem,
+	       contItem, aboutItem;
 	public CheckboxMenuItem mneChk, 
 	       decChk, hexChk, binChk,
 	       stChk, plChk, psChk;
@@ -73,13 +78,13 @@ public class MainMenu {
 		menuBar.setFont(new Font("Helvetica", Font.PLAIN, 12));
 
 		Menu m1 = new Menu(FILE);
-		m1.add(new MenuItem(OBIN));
-		m1.add(new MenuItem(OSRC));
+		m1.add(obinItem = new MenuItem(OBIN));
+		m1.add(osrcItem = new MenuItem(OSRC));
 		MenuItem iSSTA;
 		m1.add(iSSTA = new MenuItem(SSTA));
 		iSSTA.setEnabled(false);
 		m1.addSeparator();
-		m1.add(new MenuItem(QUIT));
+		m1.add(quitItem = new MenuItem(QUIT));
 		Menu m2 = new Menu(OPTS);
 		MenuItem iSTAT;
 		m2.add(iSTAT = new MenuItem(STAT));
@@ -93,22 +98,22 @@ public class MainMenu {
 		sm1.add(binChk);
 		m2.add(sm1);
 		Menu ma = new Menu(ASSM);
-		ma.add(new MenuItem(ESRC));
-		ma.add(new MenuItem(ECUR));
+		ma.add(esrcItem = new MenuItem(ESRC));
+		ma.add(ecurItem = new MenuItem(ECUR));
 		Menu m3 = new Menu(RUN);
 		stChk.setState(true);
 		m3.add(stChk);
 		m3.add(plChk);
 		m3.add(psChk);
 		m3.addSeparator();
-		m3.add(new MenuItem(STEP));
+		m3.add(stepItem = new MenuItem(STEP));
 		m3.addSeparator();
-		m3.add(new MenuItem(REST));
+		m3.add(resetItem = new MenuItem(REST));
 		Menu m4 = new Menu(HELP);
-		m4.add(new MenuItem(CONT));
+		m4.add(contItem = new MenuItem(CONT));
 //		m4.add(new MenuItem(SRCH));
 //		m4.addSeparator();
-		m4.add(new MenuItem(ABUT));
+		m4.add(aboutItem = new MenuItem(ABUT));
 		menuBar.add(m1);
 		menuBar.add(m2);
 		menuBar.add(ma);

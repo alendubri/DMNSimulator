@@ -13,7 +13,7 @@ The current modernization work completed so far includes:
 - repository-wide rename of the custom `binContainer.Byte` type to `binContainer.DmnByte`,
 - fix for the invalid `new MainMenu(super)` constructor call in `GUI/DMNFrame.java`,
 - cleanup of several removed or heavily deprecated Java APIs,
-- first-phase suppression of the remaining legacy AWT event-model deprecations,
+- full migration of the desktop GUI from the old AWT 1.0 event model to listener-based event handling,
 - unification of the build into a single root Makefile that works with the installed modern JDK.
 
 The result is a codebase that can be compiled for testing on a current JDK without preserving the exact historical build mechanics in this branch.
@@ -121,16 +121,16 @@ Important behavior changes relative to the historical branch:
 
 - the default build no longer writes `.class` files into the source directories,
 - the default build no longer depends on the old recursive package compilation order,
-- the current source compiles cleanly under `javac` with strict warning flags after the first-phase cleanup,
+- the desktop source compiles cleanly under `javac` with strict warning flags on JDK 25,
 - the applet source still compiles, but modern OpenJDK no longer includes `appletviewer`.
 
 The `make appletexec` target is therefore intentionally replaced with an informational message rather than a runnable applet command.
 
 Current limitation:
 
-- parts of the GUI still rely on the legacy AWT 1.0 event model (`handleEvent`, `action`, and old mouse callbacks),
-- in this first modernization phase those deprecations are handled with targeted `@SuppressWarnings("deprecation")` annotations so behavior remains unchanged for testing,
-- a later refactor is expected to replace that logic with listener-based event handling (`ActionListener`, `WindowListener`, `MouseListener`, and related APIs).
+- `DMNApplet.java` is intentionally kept as historical applet-era code and still uses `java.applet.Applet` and the old `handleEvent(Event)` style,
+- this means the desktop build is modernized, but the applet entry point remains a legacy compatibility artifact in this branch,
+- for the detailed migration record of the desktop event refactor, see `00-Doc/Java25EventChanges.txt`.
 
 ## Legacy Reference
 

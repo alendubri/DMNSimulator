@@ -10,6 +10,17 @@
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
+# Eclipse files
+.classpath
+.project
+.factorypath
+.settings/
+.settings
+.metadata/
+.metadata
+.externalToolBuilders/
+.externalToolBuilders
+
 # Package Files #
 *.jar
 *.war
@@ -27,3 +38,23 @@ replay_pid*
 .codex
 build/
 build
+target/
+target
+.idea/
+.idea
+*.iml
+out/
+out
+bin/
+bin
+.apt_generated/
+.apt_generated
+.vscode/
+.vscode/*
+!.vscode/
+!.vscode/launch.json
+!.vscode/extensions.json
+*.swp
+*~
+.DS_Store
+Thumbs.db

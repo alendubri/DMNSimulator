@@ -11,8 +11,9 @@ a la 1.5
 package GUI;
 
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
-@SuppressWarnings("deprecation")
 public class StagesPanel extends Panel {
 
 	Panel [] panels = new Panel[3];
@@ -20,7 +21,8 @@ public class StagesPanel extends Panel {
 	public IntrCanvas intrcv;
 	Dimension d;
 	SingleStagePanel [] stages = new SingleStagePanel[4];
-	public RunCheckbox [] cbSim = new RunCheckbox[3];
+	public Checkbox [] cbSim = new Checkbox[3];
+	public Button stepButton, resetButton;
 
 	public StagesPanel(ClockCanvas c) {
 		d = new Dimension(460,180);
@@ -56,11 +58,11 @@ public class StagesPanel extends Panel {
 
 		panels[0].setLayout(new GridLayout(1,6));
 		CheckboxGroup cbg = new CheckboxGroup();
-		panels[0].add(cbSim[0] = new RunCheckbox(MainMenu.STOP,cbg,true));
-		panels[0].add(cbSim[1] = new RunCheckbox(MainMenu.PLAY,cbg,false));
-		panels[0].add(cbSim[2] = new RunCheckbox(MainMenu.PAUS,cbg,false));
-		panels[0].add(new Button(MainMenu.STEP));
-		panels[0].add(new Button(MainMenu.REST));
+		panels[0].add(cbSim[0] = new Checkbox(MainMenu.STOP,cbg,true));
+		panels[0].add(cbSim[1] = new Checkbox(MainMenu.PLAY,cbg,false));
+		panels[0].add(cbSim[2] = new Checkbox(MainMenu.PAUS,cbg,false));
+		panels[0].add(stepButton = new Button(MainMenu.STEP));
+		panels[0].add(resetButton = new Button(MainMenu.REST));
 		panels[0].add(intrcv = new IntrCanvas());
 		
 
@@ -180,7 +182,6 @@ class SingleStagePanel extends Panel {
 	}
 }
 
-@SuppressWarnings("deprecation")
 class IntrCanvas extends Canvas {
 
 	Dimension d;
@@ -190,6 +191,22 @@ class IntrCanvas extends Canvas {
 	public IntrCanvas() {
 		d = new Dimension(77,20);
 		active = enter = false;
+		addMouseListener(new MouseAdapter() {
+			public void mouseEntered(MouseEvent e) {
+				enter = true;
+				repaint();
+			}
+
+			public void mouseExited(MouseEvent e) {
+				enter = false;
+				repaint();
+			}
+
+			public void mousePressed(MouseEvent e) {
+				active = !active;
+				repaint();
+			}
+		});
 	}
 
 	public void paint(Graphics g){
@@ -247,24 +264,6 @@ class IntrCanvas extends Canvas {
 		return new Polygon(xp,yp,3);
 	}
 
-	public boolean mouseEnter(Event e, int x, int y) {
-		enter = true;
-		this.repaint();
-		return true;
-	}
-
-	public boolean mouseExit(Event e, int x, int y) {
-		enter = false;
-		this.repaint();
-		return true;
-	}
-
-	public boolean mouseDown(Event e, int x, int y) {
-		active = !active;
-		this.repaint();
-		return false;
-	}
-
 	public Dimension getMinimumSize() {
 		return d;
 	}
@@ -272,20 +271,5 @@ class IntrCanvas extends Canvas {
 	public Dimension getPreferredSize() {
 		return getMinimumSize();
 	}
-}
-
-
-@SuppressWarnings("deprecation")
-class RunCheckbox extends Checkbox {
-
-	public RunCheckbox(String str, CheckboxGroup cbg, boolean st){
-		super(str,cbg,st);
-	}
-
-	public boolean action(Event e, Object w) {
-		this.setState(true);
-		return false;
-	}
-
 }
 

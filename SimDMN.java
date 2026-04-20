@@ -17,6 +17,7 @@ public class SimDMN {
 //		f.inAnApplet = true; //puesto para probar la apertura de archivo por red
 		f.init();
 		f.pack(); // Esta instruccion empaqueta los componentes visuales
+		WindowUtil.centerOnScreen(f);
  		f.setVisible(true);
 		f.repaint();
 	}
