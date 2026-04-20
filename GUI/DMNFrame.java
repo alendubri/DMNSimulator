@@ -61,6 +61,7 @@ public class DMNFrame extends Frame {
 
 	final String ABOUT_LAB3 = "Revision: 1.6";
 	final String ABOUT_LAB4 = "Author: dubuc";
+	final String PROJECT_HOME_URL = "https://github.com/alendubri/DMNSimulator";
 
 	final int	DEC = 1;
 	final int	HEX = 2;
@@ -310,6 +311,11 @@ public class DMNFrame extends Frame {
 				aboutDl.setVisible(true);
 			}
 		});
+		mainMenu.contItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openProjectHomePage();
+			}
+		});
 		mainMenu.osrcItem.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				openSourceDialog();
@@ -445,6 +451,23 @@ public class DMNFrame extends Frame {
 			WindowUtil.centerOnScreen(nfdial);
 			nfdial.setVisible(true);
 		}
+	}
+
+	private void openProjectHomePage() {
+		try {
+			if (Desktop.isDesktopSupported()) {
+				Desktop desktop = Desktop.getDesktop();
+				if (desktop.isSupported(Desktop.Action.BROWSE)) {
+					desktop.browse(new URI(PROJECT_HOME_URL));
+					return;
+				}
+			}
+		}
+		catch (java.io.IOException e) {
+		}
+		catch (java.net.URISyntaxException e) {
+		}
+		showFileOpenError("Couldn't open project web page");
 	}
 
 	private void openBinaryDialog() {
