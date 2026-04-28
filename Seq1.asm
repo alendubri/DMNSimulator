@@ -1,0 +1,4 @@
+	LDI R2,#78h
+	AND R3,R2,R6
+	SUB R4,R5,R2
+	HLT

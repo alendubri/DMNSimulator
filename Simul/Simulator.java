@@ -41,6 +41,8 @@ public class Simulator {
 	public DependResolver depUnit;
 	public ByteQueue pcQueue;
 	public boolean [] pcState = new boolean[4];
+	private boolean [] exValid = new boolean[2];
+	private boolean [] wbValid = new boolean[3];
 	public boolean wmem;
 	public int mempos;
 	private ByteQueue rldi;
@@ -106,14 +108,19 @@ public class Simulator {
 	}
 
 	private void pushQueues() {
+		if(wbValid[wbValid.length - 1])
+			wb4.setValue(wbQueue.seeTopQueue().intValue());
+		else
+			wb4.clearValue();
+		pushValidity(exValid,true);
 		exQueue.pushQueue(BinConvert.byteToUpperNibble(hInst));
-		wb4.setValue(wbQueue.seeTopQueue().intValue());
+		pushValidity(wbValid,true);
 		wbQueue.pushQueue(BinConvert.byteToLowerNibble(hInst));
 	}
 
 	private void writeBack() {
 		int topWb = wbQueue.seeTopQueue().intValue();
-		if(topWb != 15)
+		if(wbValid[wbValid.length - 1] && (topWb != 15))
 			rFile.writeMemory(xReg,topWb);
 
 		pcQueue.pushQueue(pcReg);
@@ -131,8 +138,18 @@ public class Simulator {
 			wmem = alu.wmem;
 			this.fetchInstruction();
 			this.pushQueues();
-			this.depUnit.resolve(rFile,alu.xQueue.seeElement(0),rldi,wbQueue,lInst);
-			this.alu.exMux(depUnit.aReg[1],depUnit.bReg[1],rFile,exQueue.seeTopQueue(),depUnit.sla,depUnit.slb);
+			this.depUnit.resolve(
+				rFile,
+				alu.xQueue.seeElement(0),
+				rldi,
+				wbQueue,
+				wbValid[wbValid.length - 1],
+				lInst
+			);
+			if(exValid[exValid.length - 1])
+				this.alu.exMux(depUnit.aReg[1],depUnit.bReg[1],rFile,exQueue.seeTopQueue(),depUnit.sla,depUnit.slb);
+			else
+				this.alu.bubble(rFile,depUnit.sla,depUnit.slb);
 			this.writeBack();
 			if(alu.flush)
 				flushQueues();
@@ -142,8 +159,23 @@ public class Simulator {
 	private void flushQueues() {
 		wbQueue.clearQueue();
 		exQueue.clearQueue();
+		clearValidity(wbValid);
+		clearValidity(exValid);
 		depUnit.reset();
+		alu.clearPipelineState();
+		wb4.clearValue();
 		resetPCState();
+	}
+
+	private void pushValidity(boolean[] validQueue, boolean validEntry) {
+		for(int i = validQueue.length - 1; i > 0; i--)
+			validQueue[i] = validQueue[i - 1];
+		validQueue[0] = validEntry;
+	}
+
+	private void clearValidity(boolean[] validQueue) {
+		for(int i = 0; i < validQueue.length; i++)
+			validQueue[i] = false;
 	}
 
 	private void resetPCState() {

@@ -56,8 +56,16 @@ public class ALLU {
 		wbQ3p.clearValue();
 		PCR.clearValue();
 		xReg.clearValue();
+		clearPipelineState();
+	}
+
+	public void clearPipelineState() {
+		wmem = flush = false;
+		mempos = 0;
 		rldi.clearQueue();
 		xQueue.clearQueue();
+		wbQ3.clearValue();
+		wbQ3p.clearValue();
 	}
 
 	public void setParameters(
@@ -188,6 +196,21 @@ public class ALLU {
 			wbQ3p = (Nibble) wbQ3.clone();
 			wbQ3.setValue(exSelector.intValue());
 		}
+	}
+
+	public void bubble(RegFileMemory rf, Nibble sa, Nibble sb) {
+		rFile = rf;
+		selectA = sa;
+		selectB = sb;
+		wmem = flush = false;
+		mempos = 0;
+		if((selectA != null)&&(selectB != null))
+			rldi.pushQueue(new DmnByte(selectA.intValue()*16 + selectB.intValue()));
+		xQueue.pushQueue(new DmnByte(0));
+		xReg.setValue((xQueue.seeTopQueue()).intValue());
+		this.incrPC();
+		wbQ3p = (Nibble) wbQ3.clone();
+		wbQ3.clearValue();
 	}
 
 	private void incrPC() {

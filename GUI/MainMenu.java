@@ -36,9 +36,14 @@ public class MainMenu {
 	static final String ESRC = "Edit New DMN Program ... ";
 	static final String ECUR = "Edit Current DMN Program ... ";
 	static final String RUN  = "Simulate";
+	static final String SPED = "Speed";
 	static final String STOP = " Stop  ";
 	static final String PLAY = " Play  ";
 	static final String PAUS = " Pause ";
+	static final String S1000 = "1 sec/step (Default)";
+	static final String S500  = "500 ms/step (Faster)";
+	static final String S2000 = "2000 ms/step (Slower)";
+	static final String S3000 = "3000 ms/step (Crawling)";
 	static final String STEP = " Step  ";
 	static final String REST = " RESET ";
 	static final String HELP = "Help";
@@ -54,7 +59,8 @@ public class MainMenu {
 	       contItem, aboutItem;
 	public CheckboxMenuItem mneChk, 
 	       decChk, hexChk, binChk,
-	       stChk, plChk, psChk;
+	       stChk, plChk, psChk,
+	       s1000Chk, s500Chk, s2000Chk, s3000Chk;
 
 
 //------------------------------------------------------------------------------
@@ -73,6 +79,10 @@ public class MainMenu {
 		stChk   = new CheckboxMenuItem(STOP);
 		plChk   = new CheckboxMenuItem(PLAY);
 		psChk   = new CheckboxMenuItem(PAUS);
+		s1000Chk = new CheckboxMenuItem(S1000);
+		s500Chk  = new CheckboxMenuItem(S500);
+		s2000Chk = new CheckboxMenuItem(S2000);
+		s3000Chk = new CheckboxMenuItem(S3000);
 
 		frame.setMenuBar(menuBar);
 		menuBar.setFont(new Font("Helvetica", Font.PLAIN, 12));
@@ -105,6 +115,16 @@ public class MainMenu {
 		m3.add(stChk);
 		m3.add(plChk);
 		m3.add(psChk);
+		Menu sm2 = new Menu(SPED);
+		s1000Chk.setState(true);
+		sm2.add(s500Chk);
+		sm2.addSeparator();
+		sm2.add(s1000Chk);
+		sm2.addSeparator();
+		sm2.add(s2000Chk);
+		sm2.add(s3000Chk);
+		m3.addSeparator();
+		m3.add(sm2);
 		m3.addSeparator();
 		m3.add(stepItem = new MenuItem(STEP));
 		m3.addSeparator();

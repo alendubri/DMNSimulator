@@ -69,6 +69,10 @@ public class DMNFrame extends Frame {
 	final int	RUN_STOP = 1;
 	final int	RUN_PLAY = 2;
 	final int	RUN_PAUSE = 3;
+	final int	STEP_DELAY_1000 = 1000;
+	final int	STEP_DELAY_500 = 500;
+	final int	STEP_DELAY_2000 = 2000;
+	final int	STEP_DELAY_3000 = 3000;
 
 //------------------------------------------------------------------------------
 
@@ -103,6 +107,7 @@ public class DMNFrame extends Frame {
 	DataInputStream dis;
 	FNFDialog fnfdial;
 	int runMode = RUN_STOP;
+	int stepDelay = STEP_DELAY_1000;
 
 //------------------------------------------------------------------------------
 
@@ -141,6 +146,7 @@ public class DMNFrame extends Frame {
 		this.setInitialPanelGeometry(); 
 		this.setInitialComponents();
 		this.setDialogs();
+		this.clkCvn.setStepDelay(stepDelay);
 		this.registerListeners();
 	}
 //------------------------------------------------------------------------------
@@ -383,6 +389,26 @@ public class DMNFrame extends Frame {
 				handleRunMenuSelection(RUN_PAUSE, e.getStateChange());
 			}
 		});
+		mainMenu.s1000Chk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunSpeedSelection(STEP_DELAY_1000, e.getStateChange());
+			}
+		});
+		mainMenu.s500Chk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunSpeedSelection(STEP_DELAY_500, e.getStateChange());
+			}
+		});
+		mainMenu.s2000Chk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunSpeedSelection(STEP_DELAY_2000, e.getStateChange());
+			}
+		});
+		mainMenu.s3000Chk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunSpeedSelection(STEP_DELAY_3000, e.getStateChange());
+			}
+		});
 
 		stPan.cbSim[0].addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
@@ -433,6 +459,14 @@ public class DMNFrame extends Frame {
 		}
 	}
 
+	private void handleRunSpeedSelection(int delay, int stateChange) {
+		if (stateChange == ItemEvent.SELECTED) {
+			setRunSpeed(delay);
+		} else {
+			syncRunSpeedMenu();
+		}
+	}
+
 	private void openSourceDialog() {
 		if (!inAnApplet) {
 			FileDialog fd = new FileDialog(this,"Open DMN Source",FileDialog.LOAD);
@@ -440,7 +474,7 @@ public class DMNFrame extends Frame {
 			fd.setVisible(true);
 			if((fd.getDirectory()!= null)&&(fd.getFile()!=null)) {
 				if(createDataInputStream(fd.getDirectory(),fd.getFile()))
-					openDMNSource();
+					openDMNSource(new File(fd.getDirectory(),fd.getFile()));
 				else
 					showFileOpenError("Couldn't open DMN Source");
 			}
@@ -530,6 +564,19 @@ public class DMNFrame extends Frame {
 		stPan.cbSim[0].setState(runMode == RUN_STOP);
 		stPan.cbSim[1].setState(runMode == RUN_PLAY);
 		stPan.cbSim[2].setState(runMode == RUN_PAUSE);
+	}
+
+	private void setRunSpeed(int delay) {
+		stepDelay = delay;
+		clkCvn.setStepDelay(stepDelay);
+		syncRunSpeedMenu();
+	}
+
+	private void syncRunSpeedMenu() {
+		mainMenu.s1000Chk.setState(stepDelay == STEP_DELAY_1000);
+		mainMenu.s500Chk.setState(stepDelay == STEP_DELAY_500);
+		mainMenu.s2000Chk.setState(stepDelay == STEP_DELAY_2000);
+		mainMenu.s3000Chk.setState(stepDelay == STEP_DELAY_3000);
 	}
 
 	private void stepSimulation() {
@@ -645,6 +692,10 @@ public class DMNFrame extends Frame {
 	}
 
 	public boolean openDMNSource(){
+		return openDMNSource(null);
+	}
+
+	public boolean openDMNSource(File sourceFile){
 		StringBuffer sb = new StringBuffer();
 		try{
 			int i = 0;
@@ -662,7 +713,7 @@ public class DMNFrame extends Frame {
 		catch(java.io.IOException e){
 			return false;
 		}
-		EditorFrame edSrc = new EditorFrame(this,sb.toString());
+		EditorFrame edSrc = new EditorFrame(this,sb.toString(),sourceFile);
 		edSrc.pack();
 		WindowUtil.centerOnScreen(edSrc);
 		edSrc.setVisible(true);

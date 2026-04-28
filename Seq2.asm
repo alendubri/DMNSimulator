@@ -1,0 +1,6 @@
+	LDI R1,#01h
+	LDI R2,#02h
+	ADD R3,R1,R2
+	SUB R4,R3,R1
+	NOT R5,R4
+	HLT
