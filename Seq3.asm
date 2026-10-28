@@ -1,0 +1,5 @@
+	LDI R1,#77
+	LDI R2,#03
+	STR R2,R1
+	LDR R4,R2
+	HLT

@@ -59,8 +59,9 @@ public class DMNFrame extends Frame {
 	final String ABOUT_LAB1 = "CEMISID";
 	final String ABOUT_LAB2 = "Universidad de Los Andes";
 
-	final String ABOUT_LAB3 = "Revision: 1.6";
-	final String ABOUT_LAB4 = "Author: dubuc";
+	final String ABOUT_LAB3 = BuildVersion.aboutLabel();
+	final String ABOUT_LAB4 = "Author: Ing. Alberto Dubuc (alendubri@yahoo.com)";
+	final String PROJECT_HOME_URL = "https://github.com/alendubri/DMNSimulator";
 
 	final int	DEC = 1;
 	final int	HEX = 2;
@@ -68,6 +69,10 @@ public class DMNFrame extends Frame {
 	final int	RUN_STOP = 1;
 	final int	RUN_PLAY = 2;
 	final int	RUN_PAUSE = 3;
+	final int	STEP_DELAY_1000 = 1000;
+	final int	STEP_DELAY_500 = 500;
+	final int	STEP_DELAY_2000 = 2000;
+	final int	STEP_DELAY_3000 = 3000;
 
 //------------------------------------------------------------------------------
 
@@ -102,6 +107,7 @@ public class DMNFrame extends Frame {
 	DataInputStream dis;
 	FNFDialog fnfdial;
 	int runMode = RUN_STOP;
+	int stepDelay = STEP_DELAY_1000;
 
 //------------------------------------------------------------------------------
 
@@ -140,6 +146,7 @@ public class DMNFrame extends Frame {
 		this.setInitialPanelGeometry(); 
 		this.setInitialComponents();
 		this.setDialogs();
+		this.clkCvn.setStepDelay(stepDelay);
 		this.registerListeners();
 	}
 //------------------------------------------------------------------------------
@@ -236,15 +243,20 @@ public class DMNFrame extends Frame {
 
 		aboutDl = new Dialog(this,"About ...",false);
 		Panel p1 = new Panel();
-		p1.setLayout(new GridLayout(7,1));
+		p1.setLayout(new GridLayout(5,1,0,6));
 		p1.add(new Label(ABOUT_LAB1,Label.CENTER));
 		p1.add(new Label(ABOUT_LAB2,Label.CENTER));
 		p1.add(new Panel());
 		p1.add(new Label(ABOUT_LAB3,Label.CENTER));
 		p1.add(new Label(ABOUT_LAB4,Label.CENTER));
-		aboutDl.add("North",p1);
-		aboutDl.add("South",aboutOkButton = new Button(OKDL));
-		aboutDl.setSize(250,200);
+		aboutDl.add(BorderLayout.CENTER,p1);
+		Panel buttons = new Panel(new FlowLayout(FlowLayout.CENTER));
+		buttons.add(aboutOkButton = new Button(OKDL));
+		aboutDl.add(BorderLayout.SOUTH,buttons);
+		aboutDl.pack();
+		Dimension preferredSize = aboutDl.getSize();
+		aboutDl.setSize(Math.max(440,preferredSize.width + 32),
+				Math.max(220,preferredSize.height + 24));
 		aboutDl.setResizable(false);
 	}
 //------------------------------------------------------------------------------
@@ -308,6 +320,11 @@ public class DMNFrame extends Frame {
 			public void actionPerformed(ActionEvent e) {
 				WindowUtil.centerOnScreen(aboutDl);
 				aboutDl.setVisible(true);
+			}
+		});
+		mainMenu.contItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				openProjectHomePage();
 			}
 		});
 		mainMenu.osrcItem.addActionListener(new ActionListener() {
@@ -377,6 +394,26 @@ public class DMNFrame extends Frame {
 				handleRunMenuSelection(RUN_PAUSE, e.getStateChange());
 			}
 		});
+		mainMenu.s1000Chk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunSpeedSelection(STEP_DELAY_1000, e.getStateChange());
+			}
+		});
+		mainMenu.s500Chk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunSpeedSelection(STEP_DELAY_500, e.getStateChange());
+			}
+		});
+		mainMenu.s2000Chk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunSpeedSelection(STEP_DELAY_2000, e.getStateChange());
+			}
+		});
+		mainMenu.s3000Chk.addItemListener(new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+				handleRunSpeedSelection(STEP_DELAY_3000, e.getStateChange());
+			}
+		});
 
 		stPan.cbSim[0].addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
@@ -427,6 +464,14 @@ public class DMNFrame extends Frame {
 		}
 	}
 
+	private void handleRunSpeedSelection(int delay, int stateChange) {
+		if (stateChange == ItemEvent.SELECTED) {
+			setRunSpeed(delay);
+		} else {
+			syncRunSpeedMenu();
+		}
+	}
+
 	private void openSourceDialog() {
 		if (!inAnApplet) {
 			FileDialog fd = new FileDialog(this,"Open DMN Source",FileDialog.LOAD);
@@ -434,7 +479,7 @@ public class DMNFrame extends Frame {
 			fd.setVisible(true);
 			if((fd.getDirectory()!= null)&&(fd.getFile()!=null)) {
 				if(createDataInputStream(fd.getDirectory(),fd.getFile()))
-					openDMNSource();
+					openDMNSource(new File(fd.getDirectory(),fd.getFile()));
 				else
 					showFileOpenError("Couldn't open DMN Source");
 			}
@@ -445,6 +490,23 @@ public class DMNFrame extends Frame {
 			WindowUtil.centerOnScreen(nfdial);
 			nfdial.setVisible(true);
 		}
+	}
+
+	private void openProjectHomePage() {
+		try {
+			if (Desktop.isDesktopSupported()) {
+				Desktop desktop = Desktop.getDesktop();
+				if (desktop.isSupported(Desktop.Action.BROWSE)) {
+					desktop.browse(new URI(PROJECT_HOME_URL));
+					return;
+				}
+			}
+		}
+		catch (java.io.IOException e) {
+		}
+		catch (java.net.URISyntaxException e) {
+		}
+		showFileOpenError("Couldn't open project web page");
 	}
 
 	private void openBinaryDialog() {
@@ -507,6 +569,19 @@ public class DMNFrame extends Frame {
 		stPan.cbSim[0].setState(runMode == RUN_STOP);
 		stPan.cbSim[1].setState(runMode == RUN_PLAY);
 		stPan.cbSim[2].setState(runMode == RUN_PAUSE);
+	}
+
+	private void setRunSpeed(int delay) {
+		stepDelay = delay;
+		clkCvn.setStepDelay(stepDelay);
+		syncRunSpeedMenu();
+	}
+
+	private void syncRunSpeedMenu() {
+		mainMenu.s1000Chk.setState(stepDelay == STEP_DELAY_1000);
+		mainMenu.s500Chk.setState(stepDelay == STEP_DELAY_500);
+		mainMenu.s2000Chk.setState(stepDelay == STEP_DELAY_2000);
+		mainMenu.s3000Chk.setState(stepDelay == STEP_DELAY_3000);
 	}
 
 	private void stepSimulation() {
@@ -622,6 +697,10 @@ public class DMNFrame extends Frame {
 	}
 
 	public boolean openDMNSource(){
+		return openDMNSource(null);
+	}
+
+	public boolean openDMNSource(File sourceFile){
 		StringBuffer sb = new StringBuffer();
 		try{
 			int i = 0;
@@ -639,7 +718,7 @@ public class DMNFrame extends Frame {
 		catch(java.io.IOException e){
 			return false;
 		}
-		EditorFrame edSrc = new EditorFrame(this,sb.toString());
+		EditorFrame edSrc = new EditorFrame(this,sb.toString(),sourceFile);
 		edSrc.pack();
 		WindowUtil.centerOnScreen(edSrc);
 		edSrc.setVisible(true);

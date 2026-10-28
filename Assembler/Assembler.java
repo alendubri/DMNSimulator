@@ -16,6 +16,10 @@ package Assembler;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.awt.*;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import binContainer.*;
 import memory.*;
 
@@ -115,6 +119,20 @@ public class Assembler {
 			if(numOp <= 0xff)
 				for(int i = numOp; i <= 0xff; i++)
 					iMem.writeMemory(new Word(0),i);
+		}
+	}
+
+	public void saveBinary(File file) throws IOException {
+		if(!assembOk)
+			throw new IllegalStateException("No assembled program is available.");
+
+		DataOutputStream dos = new DataOutputStream(new FileOutputStream(file));
+		try {
+			for(int i = 0; i < numOp; i++)
+				dos.writeShort(opcodes[i].opcode);
+		}
+		finally {
+			dos.close();
 		}
 	}
 

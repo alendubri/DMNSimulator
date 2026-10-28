@@ -15,6 +15,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.IOException;
 import Assembler.*;
 
 public class EditorFrame extends Dialog {
@@ -25,6 +27,7 @@ public class EditorFrame extends Dialog {
 	DMNFrame fSim;
 	AssembHelp hlp;
 	Button assembleButton, clearButton, closeButton, helpButton;
+	File sourceFile;
 
 	public EditorFrame(DMNFrame pr, boolean editOldProgram){
 		this(pr);
@@ -39,6 +42,11 @@ public class EditorFrame extends Dialog {
 	public EditorFrame(DMNFrame pr, String editSrc) {
 		this(pr);
 		editArea.append(editSrc);
+	}
+
+	public EditorFrame(DMNFrame pr, String editSrc, File srcFile) {
+		this(pr,editSrc);
+		sourceFile = srcFile;
 	}
 
 	public EditorFrame(DMNFrame pr){
@@ -88,7 +96,7 @@ public class EditorFrame extends Dialog {
 					String [] assSt = assem.binArray(fSim.dRep);
 					for(int i = 0; i < assem.numOp; i++)
 						binLst.add(assSt[i]);
-					ConfirmAssembDialog cdial = new ConfirmAssembDialog(fSim,assem);
+					ConfirmAssembDialog cdial = new ConfirmAssembDialog(fSim,assem,sourceFile);
 					cdial.pack();
 					WindowUtil.centerOnScreen(cdial);
 					cdial.setVisible(true);
@@ -199,21 +207,26 @@ class ConfirmAssembDialog extends Dialog {
 
 	DMNFrame fSim;
 	Assembler assem;
-	Button yesButton, noButton;
+	File sourceFile;
+	Button saveMemoryButton, saveBinaryButton, saveBothButton, cancelButton;
 
-	public ConfirmAssembDialog(DMNFrame pr, Assembler as){
-		super(pr,"Save on Memory",true);
+	public ConfirmAssembDialog(DMNFrame pr, Assembler as, File srcFile){
+		super(pr,"Save Assembly Result",true);
 		fSim = pr;
 		assem = as;
+		sourceFile = srcFile;
 		Panel p2 = new Panel();
 		p2.setLayout(new GridLayout(3,1));
 		p2.setFont(new Font("Fixed",Font.BOLD,14));
 		p2.add(new Label("Successfully Assembly.",Label.CENTER));
-		p2.add(new Label("Do you want to save",Label.CENTER));
-		p2.add(new Label("on Instruction Memory?",Label.CENTER));
+		p2.add(new Label("Choose how to save",Label.CENTER));
+		p2.add(new Label("the assembled result.",Label.CENTER));
 		Panel p3 = new Panel();
-		p3.add(yesButton = new Button("Yes"));
-		p3.add(noButton = new Button("No"));
+		p3.setLayout(new GridLayout(2,2,10,10));
+		p3.add(saveMemoryButton = new Button("Save to Memory"));
+		p3.add(saveBinaryButton = new Button("Save Binary..."));
+		p3.add(saveBothButton = new Button("Save Both..."));
+		p3.add(cancelButton = new Button("Cancel"));
 		this.add("Center",p2);
 		this.add("South",p3);
 		registerListeners();
@@ -225,21 +238,76 @@ class ConfirmAssembDialog extends Dialog {
 				closeDialog();
 			}
 		});
-		yesButton.addActionListener(new ActionListener() {
+		saveMemoryButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-					assem.putOnMemory(fSim.simul.iMemory);
-					fSim.simul.nmeConvMem();
-					if (fSim.nmeOn) fSim.imlst.refreshItemsNme();
-					else fSim.instMemRefresh();
-					fSim.nInst = assem.numOp;
+					saveToMemory();
 					closeDialog();
 			}
 		});
-		noButton.addActionListener(new ActionListener() {
+		saveBinaryButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(saveBinaryToFile())
+					closeDialog();
+			}
+		});
+		saveBothButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(saveBinaryToFile()) {
+					saveToMemory();
+					closeDialog();
+				}
+			}
+		});
+		cancelButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				closeDialog();
 			}
 		});
+	}
+
+	private void saveToMemory() {
+		assem.putOnMemory(fSim.simul.iMemory);
+		fSim.simul.nmeConvMem();
+		if (fSim.nmeOn) fSim.imlst.refreshItemsNme();
+		else fSim.instMemRefresh();
+		fSim.nInst = assem.numOp;
+	}
+
+	private boolean saveBinaryToFile() {
+		FileDialog fd = new FileDialog(fSim,"Save DMN Binary",FileDialog.SAVE);
+		if(sourceFile != null) {
+			fd.setDirectory(sourceFile.getParent());
+			fd.setFile(defaultBinaryName(sourceFile.getName()));
+		}
+		else {
+			fd.setFile("dmn.bin");
+		}
+		fd.setVisible(true);
+		if((fd.getDirectory() == null)||(fd.getFile() == null))
+			return false;
+
+		try {
+			assem.saveBinary(new File(fd.getDirectory(),fd.getFile()));
+			return true;
+		}
+		catch(IOException e) {
+			showSaveBinaryError("Couldn't save DMN Binary");
+			return false;
+		}
+	}
+
+	private void showSaveBinaryError(String message) {
+		FNFDialog errDialog = new FNFDialog(fSim,message);
+		errDialog.pack();
+		WindowUtil.centerOnScreen(errDialog);
+			errDialog.setVisible(true);
+	}
+
+	private String defaultBinaryName(String sourceName) {
+		int dot = sourceName.lastIndexOf('.');
+		if(dot > 0)
+			return sourceName.substring(0,dot) + ".bin";
+		return sourceName + ".bin";
 	}
 
 	private void closeDialog() {

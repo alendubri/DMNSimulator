@@ -21,6 +21,7 @@ public class ClockCanvas extends Canvas implements Runnable {
 	Thread tr = null;
 	Simulator simul;
 	Component parent;
+	volatile int halfTickDelayMs = 500;
 
 	public ClockCanvas(Component c,Simulator s) {
 		this.tick = true;
@@ -47,7 +48,7 @@ public class ClockCanvas extends Canvas implements Runnable {
 					this.parent.repaint();
 				}
 				try {
-					tr.sleep(500);
+					Thread.sleep(halfTickDelayMs);
 				}catch (InterruptedException e){}
 			}
 		else {
@@ -56,7 +57,7 @@ public class ClockCanvas extends Canvas implements Runnable {
 					tick = !tick;
 					repaint();
 					try {
-						tr.sleep(500);
+						Thread.sleep(halfTickDelayMs);
 					}catch (InterruptedException e){}
 				}
 			this.simul.step();
@@ -96,6 +97,11 @@ public class ClockCanvas extends Canvas implements Runnable {
 	public void step(){
 		steping = true;
 		this.start();
+	}
+
+	public void setStepDelay(int msPerStep) {
+		if(msPerStep > 0)
+			halfTickDelayMs = Math.max(1,msPerStep / 2);
 	}
 
 	public Dimension getMinimumSize() {

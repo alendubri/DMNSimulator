@@ -6,7 +6,7 @@
 
 	<groupId>org.dubuc.dmnsimulator</groupId>
 	<artifactId>dmnsimulator</artifactId>
-	<version>1.0.0-SNAPSHOT</version>
+	<version>1.6.0</version>
 	<packaging>jar</packaging>
 
 	<name>DMNSimulator</name>
@@ -15,10 +15,17 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.release>21</maven.compiler.release>
+		<build.sha>unknown</build.sha>
 	</properties>
 
 	<build>
 		<sourceDirectory>${project.basedir}</sourceDirectory>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>

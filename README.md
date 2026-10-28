@@ -125,12 +125,33 @@ The repository now also includes a minimal Maven build descriptor:
 Useful Maven command:
 
 - `mvn compile`: compile the desktop simulator sources into `target/classes`.
+- `mvn package`: build a JAR that includes `build-version.properties` with the Git-based version and short commit SHA.
+
+The About dialog displays `Revision: <version> (<short SHA>)`. Maven derives the release version from a `vX.Y.Z` tag on the build commit; branch builds append the number of commits since the nearest release tag (for example, `1.6.26100.1`). A build on the tagged commit keeps the tag version. When no matching tag is available, the fallback version is `1.6.0.0`. The Git versioning extension changes Maven versions in memory and does not rewrite `pom.xml`. Source-tree runs through the Makefile or launcher scripts read Git directly when the Maven resource is absent. Tag each release commit as `vX.Y.Z` to display that version in About.
+
+## Student Installers
+
+Release packages are built from a commit tagged `vX.Y.Z`. Finish and commit the changes you want to release, then create the tag on that commit. Local working-tree changes, including Windows/WSL line-ending differences, are ignored by the packaging scripts. The Linux script builds the Maven JAR in a fresh temporary checkout and creates an Ubuntu/Debian `.deb` with a bundled Java runtime. Run it in WSL:
+
+```bash
+bash scripts/package-linux.sh
+```
+
+Then run the Windows script in native PowerShell from the same repository checkout. It uses that JAR to create a per-user `.exe` installer with a bundled Windows Java runtime and a Start menu shortcut:
+
+```powershell
+.\scripts\package-windows.ps1
+```
+
+Both installers are written to `dist/` (ignored by Git). The Windows build needs JDK 21 or newer with `jpackage` and WiX; the WSL build needs Maven, JDK 21 or newer, `jpackage`, `fakeroot`, `dpkg-deb`, and `unzip`. The scripts check the tag and embedded JAR version/SHA before packaging. The Linux script builds from a fresh clone of the tag, so uncommitted changes cannot enter the release package. The installer version uses the three-part release tag; the About dialog retains the Git SHA. Test each installer on its target desktop before distribution. Students do not need a separate JDK or JRE.
 
 Expected environment split:
 
-- WSL/Linux validation environment: OpenJDK 25 and Maven 3.x.
+- WSL/Linux validation environment: OpenJDK 21 and Maven 3.10.0.
 - Windows Eclipse integration baseline: Eclipse IDE for Java Developers 2026-03 using Oracle JDK 21.0.10.
 - VSCode integration baseline: open the repository as a Maven Java project with the Java and Maven extensions installed.
+
+For native Windows VS Code launches from source classes, the About dialog reads the tag and SHA with Git for Windows; Git must be available on the Java process PATH. The launch configuration uses the repository root as its working directory. This works without running Maven on WSL, even if the IDE replaces the filtered resource with a placeholder version. Packaged Maven JARs use the version resource embedded at build time; Maven can run on either Windows or WSL. To use the WSL JDK and Maven from VS Code instead, open the folder through Remote - WSL and install the Java extensions in that WSL window.
 
 Why Java 21 is used in Maven:
 

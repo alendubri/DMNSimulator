@@ -25,6 +25,7 @@ public class DependResolver {
 	ByteQueue rldi;
 	NibbleQueue wbQueue;
 	DmnByte xReg;
+	boolean wbValid;
 	public boolean depL1, depL2;
 	public boolean depAL1, depAL2;
 	public boolean depBL1, depBL2;
@@ -63,7 +64,7 @@ public class DependResolver {
 		NibbleQueue wbq,
 		DmnByte sByte)
 	{
-		this.setParameters(rf,xr,rldiq,wbq);
+		this.setParameters(rf,xr,rldiq,wbq,true);
 		this.fetchSelector(sByte);
 	}
 
@@ -71,67 +72,67 @@ public class DependResolver {
 		RegFileMemory rf,
 		DmnByte xr,
 		ByteQueue rldiq,
-		NibbleQueue wbq)
+		NibbleQueue wbq,
+		boolean wbv)
 	{
 		this.rFile = rf;
 		this.xReg = xr;
 		this.rldi = rldiq;
 		this.wbQueue = wbq;
+		this.wbValid = wbv;
 	}
 	public void resolve() {
 		depL1 = depL2 = false;
 		depAL1 = depAL2 = depBL1 = depBL2 = false;
+		aReg[1].setValue(aReg[0].intValue());
+		bReg[1].setValue(bReg[0].intValue());
+		aReg[0].setValue((rFile.readMemory(sla.intValue())).intValue());
+		bReg[0].setValue((rFile.readMemory(slb.intValue())).intValue());
+
+		if(!wbValid)
+			return;
+
 		int wbQtop = (wbQueue.seeTopQueue()).intValue();
-		if(wbQtop != 0){
-			// A[1] (Dependencia de Nivel 1 en A)
-			if(wbQtop != (BinConvert.byteToUpperNibble(rldi.seeElement(0))).intValue()){
-				aReg[1].setValue(aReg[0].intValue());
-			}
-			else {
-				aReg[1].setValue(xReg.intValue());
-				depAL2 = true;
-			}
-		
-			// B[1] (Dependencia de Nivel 1 en B)
-			if(wbQtop != (BinConvert.byteToLowerNibble(rldi.seeElement(0))).intValue()){
-				bReg[1].setValue(bReg[0].intValue());
-			}
-			else{
-				bReg[1].setValue(xReg.intValue());
-				depBL2 = true;
-			}
+		if(wbQtop == 0)
+			return;
 
-			depL2 = depAL2 || depBL2;
-
-			// A[0] (Dependencia de Nivel 2 en A)
-			if(wbQtop != sla.intValue()){
-				aReg[0].setValue((rFile.readMemory(sla.intValue())).intValue());
-			}
-			else{
-				aReg[0].setValue(xReg.intValue());
-				depAL1 = true;
-			}
-
-			// B[0] (Dependencia de Nivel 2 en B)
-			if(wbQtop != slb.intValue()){
-				bReg[0].setValue((rFile.readMemory(slb.intValue())).intValue());
-			}
-			else{
-				bReg[0].setValue(xReg.intValue());
-				depBL1 = true;
-			}
-
-			depL1 = depAL1 || depBL1;
+		// A[1] (Dependencia de Nivel 1 en A)
+		if(wbQtop == (BinConvert.byteToUpperNibble(rldi.seeElement(0))).intValue()){
+			aReg[1].setValue(xReg.intValue());
+			depAL2 = true;
 		}
+	
+		// B[1] (Dependencia de Nivel 1 en B)
+		if(wbQtop == (BinConvert.byteToLowerNibble(rldi.seeElement(0))).intValue()){
+			bReg[1].setValue(xReg.intValue());
+			depBL2 = true;
+		}
+
+		depL2 = depAL2 || depBL2;
+
+		// A[0] (Dependencia de Nivel 2 en A)
+		if(wbQtop == sla.intValue()){
+			aReg[0].setValue(xReg.intValue());
+			depAL1 = true;
+		}
+
+		// B[0] (Dependencia de Nivel 2 en B)
+		if(wbQtop == slb.intValue()){
+			bReg[0].setValue(xReg.intValue());
+			depBL1 = true;
+		}
+
+		depL1 = depAL1 || depBL1;
 	}
 
 	public void resolve(
 		RegFileMemory rf,
 		DmnByte xr,
 		ByteQueue rldiq,
-		NibbleQueue wbq)
+		NibbleQueue wbq,
+		boolean wbv)
 	{
-		this.setParameters(rf,xr,rldiq,wbq);
+		this.setParameters(rf,xr,rldiq,wbq,wbv);
 		this.resolve();
 	}
 		
@@ -140,9 +141,10 @@ public class DependResolver {
 		DmnByte xr,
 		ByteQueue rldiq,
 		NibbleQueue wbq,
+		boolean wbv,
 		DmnByte sByte)
 	{
-		this.setParameters(rf,xr,rldiq,wbq);
+		this.setParameters(rf,xr,rldiq,wbq,wbv);
 		this.fetchSelector(sByte);
 		this.resolve();
 	}
