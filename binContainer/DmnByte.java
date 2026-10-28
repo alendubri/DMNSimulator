@@ -10,8 +10,6 @@ a la 1.5
 
 package binContainer;
 
-import java.util.BitSet;
-
 public class DmnByte extends Word {
 	public DmnByte(){
 		super(0,8);

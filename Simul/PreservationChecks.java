@@ -2,7 +2,6 @@ package Simul;
 
 import Assembler.Assembler;
 import binContainer.DmnByte;
-import binContainer.Word;
 import memory.DataMemory;
 import memory.RegFileMemory;
 
@@ -19,6 +18,12 @@ public final class PreservationChecks {
 		check(simulator.iMemory.peekMemory(1).intValue() == 0x0210, "ADD encoding");
 		check(simulator.iMemory.peekMemory(2).intValue() == 0xF021, "STR encoding");
 		check(simulator.iMemory.peekMemory(3).intValue() == 0xCD00, "HLT encoding");
+		Assembler windowsText = new Assembler();
+		check(!windowsText.assemble("LDI R1,#71\r\nLDI R2,#AB"), "CRLF editor input");
+		Simulator windowsProgram = new Simulator();
+		windowsText.putOnMemory(windowsProgram.iMemory);
+		check(windowsProgram.iMemory.peekMemory(0).intValue() == 0xD171, "first CRLF instruction");
+		check(windowsProgram.iMemory.peekMemory(1).intValue() == 0xD2AB, "second CRLF instruction");
 
 		RegFileMemory registers = new RegFileMemory();
 		registers.writeMemory(new DmnByte(99), 0);

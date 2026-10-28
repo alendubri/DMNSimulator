@@ -139,7 +139,8 @@ Confirmed from source:
   must decide whether it is erroneous.
 * Assembler.assemble(String) returns true on error and false on success.
 * Simulator.reset() clears registers and pipeline state but retains data and
-  instruction memory. Whether this is correct reset behavior is unspecified.
+  instruction memory. The thesis explicitly specifies this retention
+  (DMNSIM.pdf, PDF pp. 49 and 57), so it is intended behavior.
 * Three ISA-related tables/dispatch sites can drift apart. Public mutable
   state and a large GUI controller increase maintenance cost.
 
@@ -159,3 +160,4 @@ RECOMMENDATION
 --------------
 See 00-Doc/ModernizationPlan.txt for the separate three-phase plan. This
 assessment distinguishes observed code behavior from proposed improvements.
+See 00-Doc/ISAAndTimingComparison.txt for the thesis-versus-source review.

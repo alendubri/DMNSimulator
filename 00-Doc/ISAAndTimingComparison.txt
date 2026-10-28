@@ -1,0 +1,127 @@
+DMN17N78 — Thesis, LegacyCode, and Current Simulator Comparison
+================================================================
+Date: 2026-10-27
+Sources: DMNSIM.pdf (PDF pages 14–26, 45–49, 57, 88–104),
+LegacyCode at 242666797bc79f67275af515598f6ff4b3221c67,
+and the current working tree of branch AD_Dev_Codex_P01.
+
+This is a source comparison, not a change to processor behavior. "Thesis"
+means the prose and tables in the PDF; "legacy" means the preserved source.
+Where prose and source disagree, the intended architecture is unresolved.
+PDF page numbers below are PDF viewer page numbers; printed pages are one less.
+
+ARCHITECTURE AND ENCODING
+-------------------------
+The thesis (PDF pp. 14, 16–21) describes a Harvard load/store processor with
+four stages IF, RS, EX, WB; sixteen 8-bit registers, including CN=R12, HA=R13,
+PS=R14, PC=R15; and 14 instructions. R0 is fixed at zero, and ordinary
+instruction writeback must not overwrite R15. Instruction words are 16 bits:
+bits 15–12 are opcode, bits 11–8 normally select a destination, and the low
+byte holds source selectors or immediate data. The source files agree on the
+widths: InstMemory has 256 words; DataMemory has 256 bytes; RegFileMemory has
+sixteen bytes. See memory/*Memory.java and Simul/Simulator.java.
+
+Opcode  Mnemonic  Thesis form or meaning       Legacy/current implementation
+0       ADD       Rd,Rs1,Rs2; signed addition  Same fields; ALLU.exMux case 0
+1       SUB       Rd,Rs1,Rs2; signed subtract  Same fields; case 1
+2       AND       Rd,Rs1,Rs2                 Same fields; case 2
+3       OR        Rd,Rs1,Rs2                 Same fields; case 3
+4       NOT       Rd,Rs                     Same destination/source; case 4
+5       SHT       Rd,Rs1,Rs2; both directions Same fields; case 5 differs (below)
+6–7     reserved  Reserved opcodes             ALU sets result zero
+8       ZTS       Rc1,Rc2; equality to CN     Same selectors; case 8
+9       NTS       Rc1,Rc2; <= in table        Signed < in both source trees
+A       JCN       @address if CN nonzero      Address in low byte; case A
+B       RTI       PC from PCR                 Case B
+C       HLT       HA becomes FF              Case C and HA halt guard
+D       LDI       Rd,#byte                    Low byte immediate; case D
+E       LDR       Rd,Rs; Mem[Rs]             Same selectors; case E
+F       STR       address register, source    Same selectors; case F
+
+The table is supported by PDF pp. 18–21, Assembler/Assembler.java
+(resolveOperands and Opcodes), Simul/NMETransf.java, and Simul/ALLU.java
+(exMux). The thesis table has apparent typography errors: it prints "HTL"
+and "NST" once, although its opcode table and both source trees use HLT and
+NTS. These isolated spellings should not be adopted as alternate mnemonics.
+
+CONFIRMED AGREEMENTS
+--------------------
+* The opcode assignments and principal operand fields match across thesis,
+  assembler, decoder, and both execution implementations.
+* The PDF (p. 23) says EX and WB control queues have depths 2 and 3; both
+  simulator branches allocate those depths in Simulator's constructor.
+* The PDF (p. 24) describes two dependency distances; DependResolver has
+  level-1 and level-2 forwarding state in both branches.
+* The PDF (pp. 49, 57) explicitly says Reset preserves instruction and data
+  memories. Simulator.reset() does so in both branches. This is an intended
+  behavior, not a reset defect.
+* The PDF (p. 19) says HLT sets HA to FF. Both branches encode HLT as CD00,
+  direct the result to R13, and stop step() once HA reads 255.
+
+DISCREPANCIES OR UNRESOLVED RULES
+---------------------------------
+1. NTS equality. PDF p. 19 prints CN <= (Rc1 <= Rc2), while Word.lt2Complement()
+   and ALLU.exMux case 9 implement strictly less-than in both source trees.
+   Equal operands distinguish the two interpretations. Do not change the
+   comparison without deciding which reference governs.
+
+2. SHT direction and count. PDF pp. 17–18 says the shift works in both
+   directions, but gives no precise signed-count encoding or overflow rule.
+   ALLU.exMux case 5 in LegacyCode and current source calculates a directional
+   result and immediately overwrites it with rA << rB. The final behavior is
+   a left shift by the unsigned value of Rs2. The initial calculation uses
+   Rs1 as the count, which looks inconsistent with the table. Neither source
+   tree resolves the intended directional encoding.
+
+3. HLT destination field. PDF p. 20 draws HLT with R0 in nibble 2, whereas
+   the PDF's HLT semantics require HA=FF and both assemblers encode CD00
+   (nibble 2 = R13). The diagram appears inconsistent with the prose and
+   working implementation; preserve CD00 pending an explicit decision.
+
+4. Interrupt sources and nesting. PDF p. 25 describes automatic illegal
+   instruction/register and arithmetic-overflow interrupts, recognized after
+   WB, and says nested interrupts are disabled. Legacy/current source exposes
+   Simulator.intrAck() for external requests, but reserved opcodes 6–7 merely
+   produce zero; the arithmetic helper clears out-of-range results without
+   raising an interrupt; intrAck() has no visible nesting guard. Thus the
+   prose describes capabilities absent from the inspected implementation.
+   It is unclear whether these were specifications or future intentions.
+
+5. Signed arithmetic extremes. PDF p. 14 calls arithmetic 8-bit two's
+   complement, but does not define overflow result/exception precisely.
+   Word.setValue2Complement() in both branches clears a result whose absolute
+   magnitude reaches 128, including -128. This should be characterized, not
+   silently converted to conventional modulo-256 arithmetic.
+
+6. Branch and interrupt timing. PDF pp. 21–26 describes IF/RS/EX/WB
+   overlap, branch flushes, three-deep PCQ, and PCR selection by flags.
+   Simulator.step(), DependResolver.resolve(), ALLU.incrPC(), and pcState[]
+   implement corresponding mechanisms, but the PDF lacks enough boundary
+   detail to prove every cycle outcome. Current code added validity tracking
+   and bubbles; LegacyCode lacks them. This is an intentional implementation
+   difference that needs cycle-by-cycle characterization, especially startup,
+   taken branches, halt, and interrupts.
+
+7. RTI binary form. PDF p. 20 depicts R15 in nibble 2 for RTI, whereas the
+   assembler emits B000 for bare RTI in both branches. ALLU uses opcode and
+   PCR, rather than that destination nibble, to redirect PC. The diagram and
+   emitted word differ, though the runtime mechanism may still satisfy the
+   prose. Preserve existing binary output until this is resolved.
+
+TIMING BASELINE
+---------------
+PDF pp. 21–23: instruction i occupies IF, RS, EX, WB in four successive
+cycles; by cycle 4, four instructions overlap in distinct stages. The
+simulator uses one call to step() per clock cycle. Queue depth and the order
+fetch -> push -> resolve -> execute -> writeback support that model, but
+stage-validity changes on the current branch alter startup and flushed
+cycles relative to LegacyCode. The existing LoopRegression covers one
+repeated SUB dependency; it does not certify all four stages or interrupts.
+
+NEXT PRESERVATION CHECKS
+------------------------
+Add side-by-side fixtures for every instruction and for: equal-operand NTS,
+positive/negative shift counts, +/-128 arithmetic results, reserved opcodes,
+HLT/RTI words, startup fill, taken/not-taken JCN, interrupt return, and Reset
+with nonzero data memory. Record both encoded words and per-cycle state.
+Treat mismatches as evidence for review, not permission to change ISA behavior.

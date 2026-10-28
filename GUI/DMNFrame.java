@@ -39,9 +39,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import binContainer.*;
-import memory.*;
 import Simul.*;
-import Assembler.Assembler;
 import java.net.*;
 import java.io.*;
 

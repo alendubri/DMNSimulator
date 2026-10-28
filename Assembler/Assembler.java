@@ -14,8 +14,6 @@ a la 1.5
 package Assembler;
 
 import java.util.StringTokenizer;
-import java.util.Vector;
-import java.awt.*;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -144,7 +142,7 @@ public class Assembler {
 	}
 
 	private void initLinesBuffer(String st) {
-		stok = new StringTokenizer(st,"\n");
+		stok = new StringTokenizer(st,"\r\n");
 		clines = stok.countTokens();
 		lines = new String[clines];
 		opcodes = new OpcodeTable[clines];
@@ -163,10 +161,9 @@ public class Assembler {
 	private void makeTable() {
 		String tmpSt, nenmo;
 		StringBuffer tmpStb;
-		int Dir = 0, cnt1, cnt2, llin, x;
+		int Dir = 0, cnt1, cnt2;
 
 		for(cnt1 = 0; cnt1 < clines;cnt1++) {
-			llin = lines[cnt1].length();
 			tmpSt = new String(lines[cnt1]);
 			tmpSt = tmpSt.replace('\t',' ');
 			tmpStb = new StringBuffer(elimChar(tmpSt,' '));
@@ -570,9 +567,9 @@ class ErrorMessage {
 
 	public ErrorMessage(int errNo, int ln) {
 		try{
-			msg = this.msgs[errNo];
+			msg = msgs[errNo];
 		} catch (java.lang.ArrayIndexOutOfBoundsException e) {
-			msg = this.msgs[0];
+			msg = msgs[0];
 		}
 		linNo = ln;
 	}
@@ -592,7 +589,7 @@ class Opcode {
 }
 
 class Opcodes {
-	public static Opcode [] oplst = new Opcode[14];
+	public Opcode [] oplst = new Opcode[14];
 	
 	public Opcodes() {
 		oplst[0]  = new Opcode("ADD",0x0,1);

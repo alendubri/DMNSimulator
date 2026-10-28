@@ -17,13 +17,17 @@ Completed:
 * Recorded the historical LegacyCode reference and implementation baseline
   in README.md.
 * Confirmed that the full source compiles with the installed Windows JDK 25.
+* The user manually verified desktop startup and the editor's two-line
+  assembly case after the CRLF fix.
 * Added Simul.PreservationChecks for selected encoding, memory, snapshot,
   reset, and loop behavior; added make check.
 
 Remaining:
-1. Extract a precise opcode, operand, flag, reset, and cycle-timing reference
-   from the thesis PDF and LegacyCode; record any differences from this tree.
-2. Run desktop startup and representative sample programs on OpenJDK 25 in a
+1. Resolve the thesis/source ambiguities documented in
+   00-Doc/ISAAndTimingComparison.txt, especially NTS, SHT, control-word
+   encoding, interrupts, and arithmetic extremes. The source comparison is
+   complete; these intended semantics remain undecided.
+2. Run representative sample programs on OpenJDK 25 in a
    graphical environment. Validate Make and Maven builds with standard JDK
    paths, including their distinct applet inclusion policies.
 3. Expand characterization checks to every opcode, signed boundaries, memory
