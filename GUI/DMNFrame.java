@@ -59,8 +59,8 @@ public class DMNFrame extends Frame {
 	final String ABOUT_LAB1 = "CEMISID";
 	final String ABOUT_LAB2 = "Universidad de Los Andes";
 
-	final String ABOUT_LAB3 = "Revision: 1.6";
-	final String ABOUT_LAB4 = "Author: dubuc";
+	final String ABOUT_LAB3 = BuildVersion.aboutLabel();
+	final String ABOUT_LAB4 = "Author: Ing. Alberto Dubuc (alendubri@yahoo.com)";
 	final String PROJECT_HOME_URL = "https://github.com/alendubri/DMNSimulator";
 
 	final int	DEC = 1;
@@ -243,15 +243,20 @@ public class DMNFrame extends Frame {
 
 		aboutDl = new Dialog(this,"About ...",false);
 		Panel p1 = new Panel();
-		p1.setLayout(new GridLayout(7,1));
+		p1.setLayout(new GridLayout(5,1,0,6));
 		p1.add(new Label(ABOUT_LAB1,Label.CENTER));
 		p1.add(new Label(ABOUT_LAB2,Label.CENTER));
 		p1.add(new Panel());
 		p1.add(new Label(ABOUT_LAB3,Label.CENTER));
 		p1.add(new Label(ABOUT_LAB4,Label.CENTER));
-		aboutDl.add("North",p1);
-		aboutDl.add("South",aboutOkButton = new Button(OKDL));
-		aboutDl.setSize(250,200);
+		aboutDl.add(BorderLayout.CENTER,p1);
+		Panel buttons = new Panel(new FlowLayout(FlowLayout.CENTER));
+		buttons.add(aboutOkButton = new Button(OKDL));
+		aboutDl.add(BorderLayout.SOUTH,buttons);
+		aboutDl.pack();
+		Dimension preferredSize = aboutDl.getSize();
+		aboutDl.setSize(Math.max(440,preferredSize.width + 32),
+				Math.max(220,preferredSize.height + 24));
 		aboutDl.setResizable(false);
 	}
 //------------------------------------------------------------------------------

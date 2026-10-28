@@ -125,12 +125,17 @@ The repository now also includes a minimal Maven build descriptor:
 Useful Maven command:
 
 - `mvn compile`: compile the desktop simulator sources into `target/classes`.
+- `mvn package`: build a JAR that includes `build-version.properties` with the Git-based version and short commit SHA.
+
+The About dialog displays `Revision: <version> (<short SHA>)`. Maven derives the release version from a `vX.Y.Z` tag on the build commit; branch builds append the number of commits since the nearest release tag (for example, `1.6.26100.1`). A build on the tagged commit keeps the tag version. When no matching tag is available, the fallback version is `1.6.0.0`. The Git versioning extension changes Maven versions in memory and does not rewrite `pom.xml`. Source-tree runs through the Makefile or launcher scripts read Git directly when the Maven resource is absent. Tag the release commit containing this integration as `v1.6.0` to display `Revision: 1.6.0 (<short SHA>)`.
 
 Expected environment split:
 
-- WSL/Linux validation environment: OpenJDK 25 and Maven 3.x.
+- WSL/Linux validation environment: OpenJDK 21 and Maven 3.10.0.
 - Windows Eclipse integration baseline: Eclipse IDE for Java Developers 2026-03 using Oracle JDK 21.0.10.
 - VSCode integration baseline: open the repository as a Maven Java project with the Java and Maven extensions installed.
+
+For native Windows VS Code launches from source classes, the About dialog reads the tag and SHA with Git for Windows; Git must be available on the Java process PATH. The launch configuration uses the repository root as its working directory. This works without running Maven on WSL, even if the IDE replaces the filtered resource with a placeholder version. Packaged Maven JARs use the version resource embedded at build time; Maven can run on either Windows or WSL. To use the WSL JDK and Maven from VS Code instead, open the folder through Remote - WSL and install the Java extensions in that WSL window.
 
 Why Java 21 is used in Maven:
 
