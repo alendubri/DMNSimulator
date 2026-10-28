@@ -1,0 +1,87 @@
+DMN17N78 Simulator — Modernization Plan
+=======================================
+Plan status: partially implemented as of 2026-10-27. This file describes
+recommended future work; it does not authorize semantic changes by itself.
+
+GOVERNING RULE
+--------------
+Preserve the original ISA, binary program format, and verified execution
+behavior. Where current behavior differs from the thesis or LegacyCode,
+document the discrepancy and obtain an explicit decision before correcting it.
+Use 00-Doc/DMNSIM.pdf and LegacyCode as historical references. Characterize
+current behavior before changing execution logic.
+
+PHASE 1 — PRESERVATION AND STABILIZATION
+----------------------------------------
+Completed:
+* Recorded the historical LegacyCode reference and implementation baseline
+  in README.md.
+* Confirmed that the full source compiles with the installed Windows JDK 25.
+* Added Simul.PreservationChecks for selected encoding, memory, snapshot,
+  reset, and loop behavior; added make check.
+
+Remaining:
+1. Extract a precise opcode, operand, flag, reset, and cycle-timing reference
+   from the thesis PDF and LegacyCode; record any differences from this tree.
+2. Run desktop startup and representative sample programs on OpenJDK 25 in a
+   graphical environment. Validate Make and Maven builds with standard JDK
+   paths, including their distinct applet inclusion policies.
+3. Expand characterization checks to every opcode, signed boundaries, memory
+   limits, consecutive dependencies, branches, interrupts, halt, reset, and
+   binary load/save. Preserve sample binary compatibility.
+4. Classify each confirmed defect as a historical behavior to preserve or an
+   approved correction before editing its execution path.
+
+Acceptance: builds and the full characterization suite pass on the chosen JDK;
+documented sample programs retain their verified register, memory, PC, and
+cycle outcomes. GUI launch is verified separately.
+
+PHASE 2 — CODE MODERNIZATION
+----------------------------
+Completed:
+* Added Simulator.snapshot() and immutable ExecutionSnapshot so tools can
+  inspect state without holding live Word or queue references.
+* Added Memory.peekMemory(int) for a detached, pointer-preserving read.
+
+Remaining:
+1. Centralize opcode names, encodings, and operand layouts used by the
+   assembler, execution dispatch, and mnemonic display. Keep emitted words
+   and execution semantics identical to the approved baseline.
+2. Replace GUI reads of public mutable simulator fields with a coherent
+   snapshot interface. Keep a compatibility layer until all callers migrate.
+3. Separate clock scheduling, execution, and AWT updates; ensure UI updates
+   occur on the AWT event thread and stop/step cannot overlap unexpectedly.
+4. Document public execution and reset contracts, input formats, and failure
+   handling. Improve validation only where it does not silently change
+   historical program behavior.
+
+Acceptance: all Phase 1 checks remain green; snapshot and GUI display agree
+after each step; no known desktop race is reproduced in play/pause/step tests.
+
+PHASE 3 — EDUCATIONAL ENHANCEMENTS
+-----------------------------------
+Completed:
+* Added Simul.TraceRunner and make trace for headless cycle records of fetch,
+  queues, validity, forwarding, register changes, and memory writes. It
+  accepts bundled CRLF assembly sources without changing the assembler.
+
+Remaining:
+1. Add cycle-by-cycle instruction tracing in the desktop GUI using snapshots.
+   Label fetch, execute, writeback, bubble, forwarding, and flush events.
+2. Add synchronized register and memory monitoring with changed-value
+   highlighting, plus a way to pause and inspect one cycle at a time.
+3. Explain data dependencies and control hazards from actual simulator state.
+   Any broader pipeline model must be labeled as an educational extension
+   unless verified by the historical processor specification.
+4. Validate visual and text traces against the same characterization programs
+   so that teaching displays do not invent state or timing.
+
+Acceptance: users can follow a program cycle by cycle, see its register and
+memory changes, and identify modeled dependencies and flushes. CLI and GUI
+views report the same state at the same cycle.
+
+CURRENT LIMITS
+--------------
+The existing preservation checks cover only a subset of the ISA. The desktop
+GUI still uses public simulator fields. The current trace does not establish
+hardware-accurate timing beyond what Simulator.step() actually models.

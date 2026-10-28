@@ -21,6 +21,12 @@ public abstract class Memory {
 		return locs[accessPointer];
 	}
 
+	public Word peekMemory(int loc) {
+		if(loc < 0 || loc >= capacity)
+			throw new IndexOutOfBoundsException("Memory address: " + loc);
+		return (Word)locs[loc].clone();
+	}
+
 	public Word readMemory(int loc) {
 		if(loc < capacity) {
 			accessPointer = loc;

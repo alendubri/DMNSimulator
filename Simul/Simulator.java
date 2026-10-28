@@ -46,6 +46,10 @@ public class Simulator {
 	public boolean wmem;
 	public int mempos;
 	private ByteQueue rldi;
+	private long cycle;
+	private int lastFetchAddress;
+	private int lastInstruction;
+	private boolean lastCycleFlush;
 
 	public Simulator() {
 		instruction = new Word();
@@ -84,6 +88,10 @@ public class Simulator {
 	}
 
 	public synchronized void reset() {
+		cycle = 0;
+		lastFetchAddress = 0;
+		lastInstruction = 0;
+		lastCycleFlush = false;
 		lInst.clearValue();
 		hInst.clearValue();
 		pcQueue.clearQueue();
@@ -101,7 +109,9 @@ public class Simulator {
 
 	private void fetchInstruction() {
 
+		lastFetchAddress = pcReg.intValue();
 		instruction = iMemory.readMemory(pcReg.intValue());
+		lastInstruction = instruction.intValue();
 
 		hInst = BinConvert.wordToUpperByte(instruction);
 		lInst = BinConvert.wordToLowerByte(instruction);
@@ -134,6 +144,8 @@ public class Simulator {
 
 	public synchronized void step() {
 		if(rFile.readMemory(HAREG).intValue() != 255) {
+				cycle++;
+				lastCycleFlush = false;
 			mempos = alu.mempos;
 			wmem = alu.wmem;
 			this.fetchInstruction();
@@ -151,9 +163,30 @@ public class Simulator {
 			else
 				this.alu.bubble(rFile,depUnit.sla,depUnit.slb);
 			this.writeBack();
-			if(alu.flush)
+				if(alu.flush) {
+					lastCycleFlush = true;
 				flushQueues();
+				}
 		}
+	}
+
+	public synchronized ExecutionSnapshot snapshot() {
+		int[] registers = new int[rFile.getCapMemory()];
+		for(int index = 0; index < registers.length; index++)
+			registers[index] = index == 0 ? 0 : rFile.peekMemory(index).intValue();
+		int[] data = new int[dMemory.getCapMemory()];
+		for(int index = 0; index < data.length; index++)
+			data[index] = dMemory.peekMemory(index).intValue();
+		int[] execute = new int[2];
+		int[] writeback = new int[3];
+		for(int index = 0; index < execute.length; index++)
+			execute[index] = exQueue.seeElement(index).intValue();
+		for(int index = 0; index < writeback.length; index++)
+			writeback[index] = wbQueue.seeElement(index).intValue();
+		return new ExecutionSnapshot(cycle, lastFetchAddress, lastInstruction,
+			pcReg.intValue(), registers, data, execute, writeback,
+			exValid, wbValid, depUnit.depAL1, depUnit.depBL1,
+			depUnit.depAL2, depUnit.depBL2, lastCycleFlush, wmem, mempos);
 	}
 
 	private void flushQueues() {

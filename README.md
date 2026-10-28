@@ -76,6 +76,8 @@ Available root targets:
 - `make exec`: run the desktop simulator with `java -cp build/classes SimDMN`.
 - `make clean`: remove the generated `build/` directory.
 - `make sources`: print the Java source file list used by the build.
+- `make check`: run headless characterization checks, including the loop regression.
+- `make trace ARGS='simpleSum.asm 32'`: print cycle, instruction, pipeline, forwarding, and changed register state.
 - `make legacy-clean`: remove checked-in and generated `.class` files from the working tree.
 
 Helper script:
@@ -194,6 +196,14 @@ Current limitation:
 - `DMNApplet.java` is intentionally kept as historical applet-era code and still uses `java.applet.Applet` and the old `handleEvent(Event)` style,
 - this means the desktop build is modernized, but the applet entry point remains a legacy compatibility artifact in this branch,
 - for the detailed migration record of the desktop event refactor, see `00-Doc/Java25EventChanges.txt`.
+
+## Preservation and tracing
+
+`Simul.PreservationChecks` checks representative instruction encodings, the zero register, memory width, snapshot isolation, reset behavior, and the existing loop regression. It is a starting baseline, not an exhaustive ISA conformance suite. The historical reference is `LegacyCode` (`242666797bc79f67275af515598f6ff4b3221c67`); the implementation baseline for this work was `4a0a0d7e39d4f7f96ccdd936bbaa4b5e0775e98f` with pre-existing local edits.
+
+`Simulator.snapshot()` returns a detached view of registers, data memory, queue contents, validity, dependency forwarding, and the most recent fetch. `Simul.TraceRunner` accepts an optional assembly file and maximum cycle count; it normalizes line endings before assembly. The trace reports observed simulator state and does not claim additional hardware timing semantics. The snapshot API does not replace the historical public mutable fields yet.
+
+The desktop applet path remains archival. Semantic questions such as signed overflow, shift direction, interrupt timing, and reset retention require comparison with `00-Doc/DMNSIM.pdf` and the preserved branch before changing execution logic.
 
 ## Legacy Reference
 

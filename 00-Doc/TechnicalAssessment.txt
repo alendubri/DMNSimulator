@@ -1,0 +1,161 @@
+DMN17N78 Simulator — Technical Assessment
+==========================================
+Assessment of the current working tree, 2026-10-27
+
+EXECUTIVE SUMMARY
+-----------------
+Observation: The current branch is a partially modernized version of a 1996
+academic simulator. It has an AWT desktop interface, an integrated assembler,
+and an execution core that explicitly advances pipeline queues and forwards
+register values. The instruction word is 16 bits, with 4-bit opcode and register
+fields; data and registers are 8 bits. Calling every part of the processor
+"4-bit" would hide these distinctions.
+
+The working tree already contained uncommitted changes before this assessment.
+The original architecture and intended corner-case behavior need comparison
+with 00-Doc/DMNSIM.pdf and the preserved LegacyCode branch. Conclusions below
+describe the current sources unless explicitly marked as recommendations.
+
+PROJECT ARCHITECTURE OVERVIEW
+-----------------------------
+The desktop path is SimDMN.main -> GUI.DMNFrame -> Simul.Simulator. DMNFrame
+constructs the simulator, loads its initial instruction memory, handles editor
+and file actions, and renders the current state. GUI.ClockCanvas drives repeated
+Simulator.step() calls. GUI.EditorFrame uses Assembler.Assembler to turn source
+into words stored in memory.InstMemory. Simul.NMETransf converts instruction
+words back to display mnemonics.
+
+The root Makefile compiles Java files into build/classes and runs SimDMN.
+Package Makefiles delegate to it. pom.xml provides a Java 21 Maven desktop
+build using the existing source layout; it excludes DMNApplet.java. No external
+runtime library is declared. DMNApplet is a historical alternate entry point.
+
+CLASS AND COMPONENT INVENTORY
+-----------------------------
+* SimDMN.java: desktop main method and window startup.
+* DMNApplet.java: historical Applet startup and old AWT handleEvent method.
+* GUI/DMNFrame.java: main window, execution controls, rendering, file handling.
+* GUI/ClockCanvas.java: clock display and execution thread.
+* GUI/MainMenu.java, EditorFrame.java: menus, source editor, assembler UI.
+* GUI/InstMemList.java, DataMemList.java, RegisterList.java: state views.
+* GUI/StagesPanel.java, QueuePanel.java, PCQPanel.java, DMNFigPanel.java:
+  pipeline, PC, dependency, and architecture displays.
+* GUI/RegisterPanel.java, Arrow.java, WindowUtil.java: layout and drawing help.
+* Assembler/Assembler.java: source parsing, operand and label resolution,
+  encoding, error reporting, program memory loading, binary output.
+* Simul/Simulator.java: CPU state and per-cycle sequencing.
+* Simul/ALLU.java: operation selection, memory access, and PC updates.
+* Simul/DependResolver.java: operand selection and forwarding checks.
+* Simul/NMETransf.java: instruction word to display text.
+* Simul/LoopRegression.java, PreservationChecks.java: headless checks.
+* Simul/ExecutionSnapshot.java, TraceRunner.java: detached state view and
+  command-line cycle tracing, added after the initial assessment.
+* memory/Memory.java: common addressed storage and access pointer.
+* memory/InstMemory.java, DataMemory.java, RegFileMemory.java: distinct stores.
+* binContainer/Word.java, DmnByte.java, Nibble.java: 16-, 8-, and 4-bit values.
+* binContainer/BinConvert.java: bit-field extraction.
+* binContainer/BinQueue.java, WordQueue.java, ByteQueue.java,
+  NibbleQueue.java: pipeline value queues.
+
+PROCESSOR ARCHITECTURE
+----------------------
+Assembler/Assembler.java (OpcodeTable constructor and resolveOperands) encodes
+the opcode at bits 15..12. Other nibbles encode a destination and source
+registers, or the low byte supplies an immediate or address. Simulator's
+fetchInstruction() splits each 16-bit word into high and low bytes;
+pushQueues() advances opcode and destination fields. NMETransf.bin2Nme()
+formats these fields for display. Assembler.Opcodes, NMETransf.NMES, and
+ALLU.exMux() each hold part of the ISA definition.
+
+Opcode  Mnemonic       Behavior in ALLU.exMux()
+0..3    ADD SUB AND OR Register arithmetic and logic
+4       NOT            Unary logic
+5       SHT            Shift; current implementation has an override defect
+6..7    reserved       Sets result to zero
+8       ZTS            Sets CN on equality
+9       NTS            Sets CN on signed less-than
+A       JCN            Conditional control transfer
+B       RTI            Interrupt return
+C       HLT            Produces the halt value
+D       LDI            Loads an immediate byte
+E       LDR            Reads data memory using register-selected address
+F       STR            Writes data memory using register-selected address
+
+InstMemory has 256 16-bit words (InstMemory constructor). DataMemory has 256
+8-bit values. RegFileMemory has sixteen 8-bit registers; R0 is forced to zero
+on reads and protected from writes. Simulator names register indices 12..15
+CN, HA, PS, and PC. It also holds a fetch PC, operand latches, an ALU result,
+an interrupt return value, and pipeline queues. These are simulator state,
+not additional claims about physical hardware.
+
+Simulator.step() fetches, advances queues, asks DependResolver.resolve() for
+operands, calls ALLU.exMux() or bubble(), writes back an older result, and
+flushes queues when requested. DependResolver compares pending destinations
+with operand selectors and forwards values. ALLU.incrPC() handles sequential
+advance, interrupts, and taken transfers. Pipeline validity, forwarding,
+bubbles, and flushes are therefore explicitly modeled. The source alone does
+not establish complete hardware timing or every possible hazard rule.
+
+SOFTWARE ARCHITECTURE
+---------------------
+Observable patterns include inheritance for fixed-width values and memories,
+queue abstractions for delayed values, and event listeners in the desktop GUI.
+There is no strong model/view boundary: DMNFrame both controls execution and
+reads public mutable simulator fields in paint(). ClockCanvas steps on its own
+thread while AWT handles UI events separately. Simulator.step(), reset(), and
+snapshot() are synchronized, but direct public-field reads and GUI updates are
+not consistently coordinated. Display races are a suspected risk, not a
+reproduced failure. Execution state lives across Simulator, ALLU,
+DependResolver, memories, and queues; the new ExecutionSnapshot provides a
+detached read view but does not yet replace the public fields.
+
+JAVA COMPATIBILITY
+------------------
+The desktop uses listener-based AWT events. DMNApplet extends the obsolete
+java.applet.Applet and uses handleEvent(java.awt.Event); it is an archival
+entry point, not a practical modern deployment path. Maven targets Java 21
+and excludes the applet. Make compiles all Java sources. The desktop needs a
+graphical environment. README.md reports earlier OpenJDK 25 compilation.
+
+After the snapshot, trace, and check additions, the full source tree compiled
+with the installed Windows JDK 25 compiler. Simul.PreservationChecks and its
+embedded LoopRegression passed, and TraceRunner ran on simpleSum.asm. Desktop
+GUI startup was not tested here. The installed Windows JDK path contains spaces,
+so invoking it through the current Makefile variable failed; direct quoted
+compiler and runtime invocation worked. This is a local tool-path limitation,
+not evidence of Java source incompatibility.
+
+TECHNICAL RISKS AND CODE QUALITY
+--------------------------------
+Confirmed from source:
+* ALLU.exMux() case 5 computes a directional shift, then unconditionally
+  overwrites its result with rA << rB. The first computation cannot affect
+  the final instruction result.
+* Memory.readMemory(int), writeMemory(Word,int), and setAccessPointer(int)
+  check only an upper bound. A negative address can reach an invalid index.
+  The newly added peekMemory(int) does check both bounds.
+* Word.setValue2Complement() clears results at or beyond its signed magnitude
+  threshold. This differs from normal fixed-width wraparound; the thesis ISA
+  must decide whether it is erroneous.
+* Assembler.assemble(String) returns true on error and false on success.
+* Simulator.reset() clears registers and pipeline state but retains data and
+  instruction memory. Whether this is correct reset behavior is unspecified.
+* Three ISA-related tables/dispatch sites can drift apart. Public mutable
+  state and a large GUI controller increase maintenance cost.
+
+Suspected, requiring tests or historical specification:
+* The assembler's character indexing and fixed-size error arrays may fail
+  on malformed input.
+* Branch, interrupt, and halt timing may have untested corner cases.
+* Concurrent clock stepping and AWT rendering may produce inconsistent views.
+
+There is one pre-existing loop regression and a small set of newly added
+preservation checks, but no comprehensive opcode, boundary, interrupt, or GUI
+suite. README.md, the original PDF, and migration notes provide documentation;
+there is no single executable ISA specification. Do not change ISA behavior
+until the thesis and legacy branch settle these questions.
+
+RECOMMENDATION
+--------------
+See 00-Doc/ModernizationPlan.txt for the separate three-phase plan. This
+assessment distinguishes observed code behavior from proposed improvements.

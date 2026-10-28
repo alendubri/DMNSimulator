@@ -14,7 +14,7 @@ MAIN_CLASS := SimDMN
 
 JAVA_SOURCES := $(shell find . -path './RCS' -prune -o -path '*/RCS' -prune -o -name '*.java' -print)
 
-.PHONY: all compile exec run clean appletexec sources legacy-clean
+.PHONY: all compile exec run check trace clean appletexec sources legacy-clean
 
 all: compile
 
@@ -27,6 +27,12 @@ $(CLASSES_DIR)/.compiled: $(JAVA_SOURCES)
 
 run exec: compile
 	$(JAVA) -cp $(CLASSES_DIR) $(MAIN_CLASS)
+
+check: compile
+	$(JAVA) -cp $(CLASSES_DIR) Simul.PreservationChecks
+
+trace: compile
+	$(JAVA) -cp $(CLASSES_DIR) Simul.TraceRunner $(ARGS)
 
 appletexec: compile
 	@printf '%s\n' 'Applet execution is not supported by the current JDK toolchain.'
