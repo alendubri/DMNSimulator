@@ -76,9 +76,14 @@ Available root targets:
 - `make exec`: run the desktop simulator with `java -cp build/classes SimDMN`.
 - `make clean`: remove the generated `build/` directory.
 - `make sources`: print the Java source file list used by the build.
-- `make check`: run headless characterization checks, including the loop regression.
+- `make check`: run simulator preservation and Basic C compiler integration checks.
+- `make basicc-check`: compile sample C-subset programs and run them through the assembler and simulator.
 - `make trace ARGS='simpleSum.asm 32'`: print cycle, instruction, pipeline, forwarding, and changed register state.
 - `make legacy-clean`: remove checked-in and generated `.class` files from the working tree.
+
+The separate experimental [Basic C subset compiler](00-Doc/BasicCCompiler.txt)
+emits DMN assembly without changing processor behavior. Its supported syntax,
+arithmetic limits, and command-line usage are documented there.
 
 Helper script:
 

@@ -1,0 +1,131 @@
+Basic C Subset Compiler for DMN17N78
+====================================
+
+Purpose
+-------
+This Java compiler translates a deliberately small C-like source file into
+ordinary DMN17N78 assembly. The existing Assembler package assembles that
+output; the compiler does not alter the ISA, simulator, or assembler.
+
+Supported source form
+---------------------
+int main(void) {
+    unsigned char count = 3;
+    unsigned char total = 0;
+    while (count != 0) {
+        total = total + count;
+        count = count - 1;
+    }
+    return total;
+}
+
+The parameter list may also be empty: main(). Variables must be declared at
+the beginning of main, one per declaration, with optional initialization.
+An uninitialized variable is explicitly set to zero. Variable names are
+unique throughout main; there are no local block scopes or shadowing.
+Declarations and assignments use unsigned char only. Decimal and 0x-prefixed
+hexadecimal literals must be in the range 0..255. The supported expression
+operators are +, -, &, | and parentheses, with additive operators binding
+more tightly than & and |. Conditions are a single expression, or two
+expressions compared by == or !=. A nonzero expression is true. if/else and
+while bodies must use braces. A return expression is allowed only as the
+final top-level statement. Without return, the program simply halts.
+Both // and /* ... */ comments are accepted.
+
+This is an educational C subset, not a general C compiler. Functions,
+parameters, pointers, arrays, strings, I/O, preprocessing, standard library,
+other types, and the other C operators are unsupported. Unsupported syntax
+is rejected with a line and column. A return value is left in R1 before HLT;
+the ISA has no operating-system exit status. The source is expected to run
+from the simulator's reset state and halt before instruction memory wraps.
+
+Function calls and the stack
+----------------------------
+The current compiler accepts only main(). Function definitions, calls, and
+parameters are not implemented, so a C example that calls a helper function
+will be rejected. The DMN17N78 ISA has no ordinary CALL or RET instruction;
+RTI uses the interrupt return address and is not a general function return.
+
+A future, limited compiler extension could inline a nonrecursive helper at
+each call site: substitute its body and arguments into main's generated
+assembly. That needs no runtime stack and would preserve the ISA, but each
+call copies instructions and uses some of the 256-word instruction memory.
+Shared subroutines would need software-managed return addresses and branch
+dispatch; recursion would also need a software stack in the 256-byte data
+memory. Neither mechanism is part of the current compiler.
+
+Processor mapping and semantic limits
+-------------------------------------
+R1 holds expression results, R2 is an expression scratch register, and R3
+holds data addresses. Variables occupy consecutive bytes starting at data
+address 0. Nested expressions use additional data bytes as temporary slots.
+The compiler checks the 256-word instruction limit and 256-byte data limit.
+The generated assembly uses only existing instructions and labels.
+
+ADD and SUB follow the historical simulator's signed 8-bit arithmetic, which
+sets results whose absolute value reaches 128 to zero. C unsigned char
+arithmetic would normally retain the low eight bits. Therefore + and - are
+reliable only when each signed intermediate result lies between -127 and 127.
+The compiler does not prove that range for loops or variable expressions;
+programmers must keep values in range. Equality, inequality, AND, and OR
+operate on the full eight-bit patterns. This limitation is intentional and
+must not be "fixed" by changing the processor implementation.
+
+The simulator checks JCN against the live CN flag one execute cycle after
+the branch. The compiler emits OR R0,R0,R0 after every JCN, so a following
+ZTS cannot change CN before the branch resolves. R0 stays zero.
+
+Build and use
+-------------
+Compile with the project Makefile or Maven on Java 21 or later:
+
+    make
+    java -cp build/classes BasicC.BasicCCompilerMain BasicC/examples/sum.c sum.asm
+    java -cp build/classes Simul.TraceRunner sum.asm 256
+
+Without the output path, BasicCCompilerMain prints assembly to standard
+output. In the GUI, paste or open the generated .asm file and assemble it
+with the existing editor. The compiler does not automatically load the GUI.
+Add -embedSource to place each original C source line immediately before the
+assembly group it generates. Comments carry the original C line number.
+Control-flow lines appear before their branch instructions or labels;
+closing braces appear before the related loop jump or end label. Blank lines
+and C comments are carried with the next nearby source group. The existing
+assembler skips these semicolon comments, so they consume no instruction
+memory and produce the same binary program. The current if/else lowering
+places the else branch before the then branch in assembly, so line numbers
+make the source mapping clear even when those blocks appear out of C order.
+A C line containing multiple constructs, such as `} else {`, can appear
+before more than one assembly group.
+For Windows CMD, from the repository root:
+
+    run-dmnsim.bat --build-only
+    java -cp build\classes BasicC.BasicCCompilerMain -embedSource BasicC\examples\nested_loops.c nested_loops.asm
+    java -cp build\classes Simul.TraceRunner nested_loops.asm 512
+
+For a more involved example, BasicC/examples/fibonacci_checksum.c generates
+eight Fibonacci values, uses a parity test inside the loop, and returns the
+sum of separate even and odd accumulators. The expected values are evenSum
+= 10, oddSum = 44, and checksum = 54. It needs about 720 simulator cycles,
+so raise the trace cycle limit when running it:
+
+    java -cp build/classes BasicC.BasicCCompilerMain BasicC/examples/fibonacci_checksum.c fibonacci.asm
+    java -cp build/classes Simul.TraceRunner fibonacci.asm 1024
+
+All arithmetic remains within the simulator's supported signed range.
+
+BasicC/examples/nested_loops.c uses two while loops to count three groups of
+two. It returns 6; both loop counters finish at zero. Its trace needs about
+423 simulator cycles:
+
+    java -cp build/classes BasicC.BasicCCompilerMain BasicC/examples/nested_loops.c nested_loops.asm
+    java -cp build/classes Simul.TraceRunner nested_loops.asm 512
+
+Run the compiler's integration checks with:
+
+    make basicc-check
+
+The checks assemble generated programs and execute them in the simulator.
+They cover arithmetic, nested expressions, bitwise operations, if/else,
+while, truthiness, assembler acceptance, and several diagnostics. They do
+not certify all possible programs or all historical pipeline corner cases.

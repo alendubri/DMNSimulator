@@ -14,7 +14,7 @@ MAIN_CLASS := SimDMN
 
 JAVA_SOURCES := $(shell find . -path './RCS' -prune -o -path '*/RCS' -prune -o -name '*.java' -print)
 
-.PHONY: all compile exec run check trace clean appletexec sources legacy-clean
+.PHONY: all compile exec run check basicc-check trace clean appletexec sources legacy-clean
 
 all: compile
 
@@ -30,6 +30,10 @@ run exec: compile
 
 check: compile
 	$(JAVA) -cp $(CLASSES_DIR) Simul.PreservationChecks
+	$(JAVA) -cp $(CLASSES_DIR) BasicC.BasicCCompilerChecks
+
+basicc-check: compile
+	$(JAVA) -cp $(CLASSES_DIR) BasicC.BasicCCompilerChecks
 
 trace: compile
 	$(JAVA) -cp $(CLASSES_DIR) Simul.TraceRunner $(ARGS)
