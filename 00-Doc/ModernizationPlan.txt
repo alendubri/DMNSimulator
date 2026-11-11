@@ -1,15 +1,15 @@
 DMN17N78 Simulator — Modernization Plan
 =======================================
-Plan status: partially implemented as of 2026-10-27. This file describes
+Plan status: partially implemented as of 2026-11-11. This file describes
 recommended future work; it does not authorize semantic changes by itself.
 
 GOVERNING RULE
 --------------
 Preserve the original ISA, binary program format, and verified execution
-behavior. Where current behavior differs from the thesis or LegacyCode,
-document the discrepancy and obtain an explicit decision before correcting it.
-Use 00-Doc/DMNSIM.pdf and LegacyCode as historical references. Characterize
-current behavior before changing execution logic.
+behavior. The user designated executable LegacyCode behavior as the
+preservation baseline on 2026-11-11. Thesis descriptions that disagree remain
+documented as unresolved. Do not correct or reinterpret a discrepancy without
+an explicit decision. Characterize current behavior before changing execution.
 
 PHASE 1 — PRESERVATION AND STABILIZATION
 ----------------------------------------
@@ -21,18 +21,23 @@ Completed:
   assembly case after the CRLF fix.
 * Added Simul.PreservationChecks for selected encoding, memory, snapshot,
   reset, and loop behavior; added make check.
+* Ran 22 identical raw-word programs for 12 cycles each under the preserved
+  legacy classes and current simulator. Recorded five scenarios with internal
+  X differences in 00-Doc/ISAAndTimingComparison.txt.
+* Expanded preservation checks to all named opcodes, reserved opcodes,
+  selected arithmetic and shift limits, branch outcomes, halt, RTI, Reset,
+  and an external interrupt; make check passes on OpenJDK 21.
+* Verified the expanded checks on Windows JDK 25 and an offline Maven
+  compile targeting Java 21; the root Make build passes on OpenJDK 21.
 
 Remaining:
-1. Resolve the thesis/source ambiguities documented in
-   00-Doc/ISAAndTimingComparison.txt, especially NTS, SHT, control-word
-   encoding, interrupts, and arithmetic extremes. The source comparison is
-   complete; these intended semantics remain undecided.
-2. Run representative sample programs on OpenJDK 25 in a
-   graphical environment. Validate Make and Maven builds with standard JDK
-   paths, including their distinct applet inclusion policies.
-3. Expand characterization checks to every opcode, signed boundaries, memory
-   limits, consecutive dependencies, branches, interrupts, halt, reset, and
-   binary load/save. Preserve sample binary compatibility.
+1. Characterize the observed X differences with more dependent instructions
+   and branch/interrupt timings; determine whether any become visible in
+   registers or memory. Keep the thesis discrepancies documented.
+2. Run representative sample programs on OpenJDK 25 in a graphical
+   environment and verify the Make and Maven applet inclusion policies.
+3. Extend checks to broader operand values, memory limits, repeated
+   dependencies, nested interrupts, binary load/save, and sample programs.
 4. Classify each confirmed defect as a historical behavior to preserve or an
    approved correction before editing its execution path.
 

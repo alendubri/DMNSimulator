@@ -1,6 +1,6 @@
 DMN17N78 — Thesis, LegacyCode, and Current Simulator Comparison
 ================================================================
-Date: 2026-10-27
+Initial comparison: 2026-10-27; executable comparison: 2026-11-11
 Sources: DMNSIM.pdf (PDF pages 14–26, 45–49, 57, 88–104),
 LegacyCode at 242666797bc79f67275af515598f6ff4b3221c67,
 and the current working tree of branch AD_Dev_Codex_P01.
@@ -9,6 +9,14 @@ This is a source comparison, not a change to processor behavior. "Thesis"
 means the prose and tables in the PDF; "legacy" means the preserved source.
 Where prose and source disagree, the intended architecture is unresolved.
 PDF page numbers below are PDF viewer page numbers; printed pages are one less.
+
+PRESERVATION DECISION (2026-11-11)
+---------------------------------
+For this work, the executable behavior of the preserved LegacyCode branch is
+the preservation baseline. Thesis descriptions that disagree with it remain
+recorded as unresolved historical descriptions. This decision does not imply
+that a discrepancy is approved for correction, nor that current behavior
+automatically matches the legacy program for every input.
 
 ARCHITECTURE AND ENCODING
 -------------------------
@@ -118,10 +126,51 @@ stage-validity changes on the current branch alter startup and flushed
 cycles relative to LegacyCode. The existing LoopRegression covers one
 repeated SUB dependency; it does not certify all four stages or interrupts.
 
+EXECUTABLE COMPARISON (2026-11-11)
+---------------------------------
+The checked-in LegacyCode class files (Java class version 45.3) ran under
+OpenJDK 21 from an isolated /tmp export. The current tree was compiled with
+Make. One reflection-based probe loaded identical raw instruction words into
+each simulator, stepped 12 cycles per scenario, and recorded PC, X, PCR,
+registers R1..R15, CN, and data address 04. It did not alter either ISA or
+simulation source. The cases were ADD, SUB, AND, OR, NOT, SHT, SHT with FF
+count, reserved opcodes 6 and 7, ZTS, NTS equal, NTS less, JCN taken, JCN
+not taken, RTI, HLT, LDI, LDR, STR, ADD overflow, ADD negative-128, and an
+external interrupt at cycle 6: 22 scenarios, 264 sampled cycles.
+The probe was temporary; the recorded observations and the expanded
+Simul.PreservationChecks are the retained artifacts.
+
+In the sampled states, all observed PC, PCR, register, condition, and M[04]
+values matched. X differed in five scenarios:
+* ZTS, NTS-equal, NTS-less, and STR: from cycle 6 onward, LegacyCode retains
+  a nonzero X while the current simulator shows zero.
+* Taken JCN: at cycle 7, LegacyCode shows X=0x55 while current shows X=0.
+
+The differences follow the current branch's explicit validity/bubble handling
+and the legacy path's continued execution of zero-filled instruction memory.
+This is an inference from the code and traces, not proof that no other program
+can expose a register or memory difference. X is used by forwarding logic,
+so its mismatch remains a preservation risk. The expanded
+Simul.PreservationChecks locks matching architectural observations for all
+14 named opcodes, both reserved opcodes, control flow, selected boundaries,
+and one interrupt sequence. It does not assert parity for the differing X
+states or exhaustively cover all operands and timings.
+
+Representative legacy observations from the probe:
+* A program consisting of HLT reaches HA=FF and PC=03 after step 3, then
+  stops advancing.
+* Equal-operand NTS leaves CN=00; less-than NTS sets CN=FF.
+* A taken JCN to 08 reaches PC=08 on step 6; the otherwise identical
+  untaken case reaches PC=06.
+* An external interrupt requested after step 5 reaches PS=08 and PCR=02
+  on step 6 in the selected program.
+* 7F + 01 and 80 + 00 both yield R3=00 under the legacy signed helper.
+
 NEXT PRESERVATION CHECKS
 ------------------------
-Add side-by-side fixtures for every instruction and for: equal-operand NTS,
-positive/negative shift counts, +/-128 arithmetic results, reserved opcodes,
-HLT/RTI words, startup fill, taken/not-taken JCN, interrupt return, and Reset
-with nonzero data memory. Record both encoded words and per-cycle state.
-Treat mismatches as evidence for review, not permission to change ISA behavior.
+Extend the representative comparisons to operand boundaries, repeated data
+dependencies, all 256 memory addresses, nested interrupt requests, binary
+load/save, and long-running sample programs. Test whether the X differences
+can affect later register or memory values. Record both encoded words and
+per-cycle state. Treat mismatches as evidence for review, not permission to
+change ISA behavior.

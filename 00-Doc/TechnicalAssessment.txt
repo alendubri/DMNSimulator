@@ -150,11 +150,13 @@ Suspected, requiring tests or historical specification:
 * Branch, interrupt, and halt timing may have untested corner cases.
 * Concurrent clock stepping and AWT rendering may produce inconsistent views.
 
-There is one pre-existing loop regression and a small set of newly added
-preservation checks, but no comprehensive opcode, boundary, interrupt, or GUI
-suite. README.md, the original PDF, and migration notes provide documentation;
-there is no single executable ISA specification. Do not change ISA behavior
-until the thesis and legacy branch settle these questions.
+There is one pre-existing loop regression and preservation checks for all
+named opcodes, reserved opcodes, selected boundaries, branches, and one
+interrupt sequence. Broad operand, memory, nested-interrupt, and GUI coverage
+is still missing. README.md, the original PDF, and migration notes provide
+documentation; the preserved LegacyCode executable behavior is the designated
+baseline where the thesis disagrees. Do not change ISA behavior without an
+explicit decision.
 
 RECOMMENDATION
 --------------
