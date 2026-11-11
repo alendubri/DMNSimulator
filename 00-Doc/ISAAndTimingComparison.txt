@@ -5,6 +5,10 @@ Sources: DMNSIM.pdf (PDF pages 14–26, 45–49, 57, 88–104),
 LegacyCode at 242666797bc79f67275af515598f6ff4b3221c67,
 and the current working tree of branch AD_Dev_Codex_P01.
 
+Historical snapshot: the "current" observations below refer to the
+2026-10-27 source state before thesis-directed execution changes. For the
+implementation now in this branch, read 00-Doc/ThesisConformanceChanges.txt.
+
 This is a source comparison, not a change to processor behavior. "Thesis"
 means the prose and tables in the PDF; "legacy" means the preserved source.
 Where prose and source disagree, the intended architecture is unresolved.

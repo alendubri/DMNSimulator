@@ -168,20 +168,11 @@ public class Word extends Number implements Cloneable {
 	}
 
 	protected void setValue2Complement(int value){
-		int nsig = Math.abs(value);
-		if(nsig < (int)Math.pow(2.0,(double)(nbits - 1))) {
-			this.setValue(nsig);
-			if(value < 0){
-				for(int i = 0; i < nbits; i++)
-					if(bits.get(i))
-						bits.clear(i);
-					else
-						bits.set(i);
-				nsig = this.intValue() + 1;
-				this.setValue(nsig);
-			}
-		}
-		else this.clearValue();
+		int halfRange = 1 << (nbits - 1);
+		if(value >= -halfRange && value < halfRange)
+			this.setValue(value & ((halfRange << 1) - 1));
+		else
+			this.clearValue();
 	}
 
     /**

@@ -30,6 +30,7 @@ run exec: compile
 
 check: compile
 	$(JAVA) -cp $(CLASSES_DIR) Simul.PreservationChecks
+	$(JAVA) -cp $(CLASSES_DIR) Simul.ThesisChecks
 
 trace: compile
 	$(JAVA) -cp $(CLASSES_DIR) Simul.TraceRunner $(ARGS)

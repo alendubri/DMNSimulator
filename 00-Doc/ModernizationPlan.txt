@@ -1,15 +1,19 @@
 DMN17N78 Simulator — Modernization Plan
 =======================================
-Plan status: partially implemented as of 2026-10-27. This file describes
+Plan status: partially implemented; updated 2026-11-11. This file describes
 recommended future work; it does not authorize semantic changes by itself.
+
+Update 2026-11-11: the user chose thesis-directed semantics for this branch.
+See 00-Doc/ThesisConformanceChanges.txt for implemented rules, provisional
+interpretations, tests, and remaining questions. The LegacyCode branch keeps
+the historical executable baseline.
 
 GOVERNING RULE
 --------------
-Preserve the original ISA, binary program format, and verified execution
-behavior. Where current behavior differs from the thesis or LegacyCode,
-document the discrepancy and obtain an explicit decision before correcting it.
-Use 00-Doc/DMNSIM.pdf and LegacyCode as historical references. Characterize
-current behavior before changing execution logic.
+Follow the thesis for processor semantics on this branch, retaining the
+historical executable on LegacyCode for comparison. Record every difference
+and every interpretation where the PDF is incomplete. Keep the existing
+assembler encoding unless the thesis clearly specifies a replacement.
 
 PHASE 1 — PRESERVATION AND STABILIZATION
 ----------------------------------------
@@ -21,15 +25,16 @@ Completed:
   assembly case after the CRLF fix.
 * Added Simul.PreservationChecks for selected encoding, memory, snapshot,
   reset, and loop behavior; added make check.
+* Added thesis-directed execution rules and Simul.ThesisChecks. The headless
+  checks pass with Linux OpenJDK 21 and the installed Windows OpenJDK 25.
 
 Remaining:
-1. Resolve the thesis/source ambiguities documented in
-   00-Doc/ISAAndTimingComparison.txt, especially NTS, SHT, control-word
-   encoding, interrupts, and arithmetic extremes. The source comparison is
-   complete; these intended semantics remain undecided.
-2. Run representative sample programs on OpenJDK 25 in a
-   graphical environment. Validate Make and Maven builds with standard JDK
-   paths, including their distinct applet inclusion policies.
+1. Review provisional interpretations in ThesisConformanceChanges.txt,
+   especially the SHT count convention, illegal operand matrix, and precise
+   interrupt behavior. NTS, NOT, CN retention, and -128 are implemented.
+2. Run the manual desktop cases in 00-Doc/GUIThesisTestChecklist.txt on
+   OpenJDK 25. Validate Make and Maven builds with standard JDK paths,
+   including their distinct applet inclusion policies.
 3. Expand characterization checks to every opcode, signed boundaries, memory
    limits, consecutive dependencies, branches, interrupts, halt, reset, and
    binary load/save. Preserve sample binary compatibility.
@@ -37,8 +42,8 @@ Remaining:
    approved correction before editing its execution path.
 
 Acceptance: builds and the full characterization suite pass on the chosen JDK;
-documented sample programs retain their verified register, memory, PC, and
-cycle outcomes. GUI launch is verified separately.
+sample programs have documented register, memory, PC, and cycle outcomes under
+the thesis-directed rules. GUI launch is verified separately.
 
 PHASE 2 — CODE MODERNIZATION
 ----------------------------

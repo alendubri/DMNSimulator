@@ -1,0 +1,179 @@
+DMN17N78 — GUI test checklist for thesis-directed behavior
+===========================================================
+Date: 2026-11-11
+
+Purpose
+-------
+These are manual desktop checks for the execution changes described in
+00-Doc/ThesisConformanceChanges.txt. The programs below were assembled and
+run with the current headless simulator; the desktop GUI itself still needs
+manual verification. Record any difference between the GUI and the expected
+register or memory values.
+
+Common procedure for tests 1-9
+------------------------------
+1. Launch the desktop simulator as usual. Select Options > Data
+   Representation > Hexadecimal so values below can be compared directly.
+2. Select Simulate > Stop. Open Assembler > Edit New DMN Program ... . Paste
+   ONE complete program below. Click Assemble. Expect "Successfully
+   Assembly!!" and a list of encoded words. In the "Save Assembly Result"
+   dialog choose "Save to Memory"; then close the editor.
+3. Select Simulate > RESET. This clears registers and pipeline state but
+   retains the loaded instruction and data memories. Select Simulate > Play
+   or use Simulate > Step, waiting for each step to finish. When HA reaches
+   FF, select Stop and inspect the result.
+4. The register list names R12 as CN, R13 as HA, R14 as PS, and R15 as PC.
+   PCR has its own field in the PC/PCQ panel. A hexadecimal register value
+   such as F0 is a single 8-bit value. If CN, HA, or PS in the register list
+   appears one repaint behind, switch the data representation and back to
+   Hexadecimal, then inspect it again. RegisterList.refreshItemsHex(int)
+   displays cached special-register values before updating the cache.
+5. Load and Reset each new program separately. Keep a note of the program,
+   result, and any unexpected PC, PCR, register, memory, or queue display.
+
+1. Editor and ordinary execution smoke test
+--------------------------------------------
+LDI R1,#71
+LDI R2,#AB
+HLT
+
+Expected: assembly succeeds; R1=71, R2=AB, HA=FF. This repeats the earlier
+two-line editor case with a halt instruction so the result is easy to inspect.
+
+2. NOT complements all eight bits
+---------------------------------
+LDI R1,#0F
+NOT R2,R1
+HLT
+
+Expected: R2=F0 and HA=FF. The previous executable produced a different
+NOT result. Confirm the instruction memory view shows NOT R2,R1 and that the
+register list shows F0 after execution.
+
+3. SHT in both directions (provisional count convention)
+--------------------------------------------------------
+LDI R1,#81
+LDI R2,#01
+SHT R3,R1,R2
+LDI R2,#FF
+SHT R4,R1,R2
+HLT
+
+Expected: R3=40 (logical right shift by 1), R4=02 (left shift by 1 with
+8-bit truncation), R2=FF, HA=FF. Here FF is the signed count -1. The thesis
+requires both directions but does not define the count encoding; this is
+the convention documented in ThesisConformanceChanges.txt.
+
+4. NTS equality, JCN, and CN retention
+-------------------------------------
+LDI R1,#05
+NTS R1,R1
+JCN DONE
+LDI R2,#AA
+LDI R2,#AA
+DONE: HLT
+
+Expected: CN=FF because 05 <= 05; JCN reaches DONE; R2=00 because the two
+loads are skipped; CN remains FF after the jump; HA=FF. While stepping,
+the PC/queue view should show a control-flow flush at the taken jump. The
+GUI does not expose a dedicated "flush" label, so use the PC movement and
+unchanged R2 as the main evidence.
+
+5. Signed NTS comparison
+------------------------
+LDI R1,#FF
+LDI R2,#01
+NTS R1,R2
+HLT
+
+Expected: CN=FF, since FF represents -1 and -1 <= +1. HA=FF.
+
+6. The -128 signed boundary is valid
+-----------------------------------
+LDI R1,#80
+LDI R2,#00
+ADD R3,R1,R2
+HLT
+
+Expected: R3=80, HA=FF, and no interrupt redirect. 80 represents -128 in
+8-bit two's complement. PCR should remain 00 after Reset and this run.
+
+7. Positive arithmetic overflow redirects to PS
+-----------------------------------------------
+LDI PS,HANDLER
+LDI R1,#7F
+LDI R2,#01
+ADD R3,R1,R2
+LDI R4,#AA
+HLT
+HANDLER: LDI R5,#E1
+HLT
+
+Expected: PS=06, PCR=03 (address of the ADD), R3=00 (no writeback), R4=00
+(younger load flushed), R5=E1 (handler ran), HA=FF. Step slowly if you want
+to observe PC redirect to 06 after the faulting ADD reaches writeback.
+
+8. Illegal ordinary write to CN redirects to PS
+-----------------------------------------------
+LDI PS,HANDLER
+LDI RC,#01
+LDI R1,#AA
+HLT
+HANDLER: LDI R5,#E2
+HLT
+
+Expected: the assembler accepts RC as a register spelling; execution treats
+the ordinary write to CN as illegal. PS=04, PCR=01, CN=00, R1=00 (younger
+load flushed), R5=E2, HA=FF. This tests the simulator's runtime fault path,
+not assembler validation.
+
+9. Store/load path and Reset retention
+--------------------------------------
+LDI R1,#04
+LDI R2,#AA
+STR R1,R2
+LDR R3,R1
+HLT
+
+Expected after execution: data memory location 04=AA, R3=AA, HA=FF.
+Then select Stop and RESET. Expected afterward: R1, R2, R3, and HA return
+to 00; instruction memory still contains this program; data memory 04
+remains AA. This retention is specified by the thesis. Repeat the program
+to confirm it can run again after Reset.
+
+10. External interrupt button and RTI (timing-sensitive)
+-------------------------------------------------------
+LDI PS,HANDLER
+LDI R1,#11
+LDI R2,#22
+HLT
+HANDLER: LDI R3,#33
+RTI
+
+Load this program and RESET as above. Use Step exactly three times, waiting
+for each step to finish. At this point PS should be 04, HA should be 00, and
+PC should be 03. Press the GUI's Intr flag once, then continue stepping or
+Play. Expected at this pause point: PCR=00, PC visits 04, R3 becomes 33,
+RTI returns PC to 00, and the program eventually reaches HA=FF. A second
+Intr press while the handler is active should not start a nested interrupt.
+If the button is pressed at another cycle, PCR and the resume address may
+differ; record the cycle and visible PC/PCQ values.
+
+Optional binary-only GUI checks
+-------------------------------
+The assembler cannot emit reserved opcodes 6/7 or the thesis diagram's C000
+HLT word. They are covered by Simul.ThesisChecks. If you want to inspect them
+through File > Open DMN Binary ... , use raw big-endian 16-bit words:
+* C000: bytes C0 00; should halt by setting HA=FF.
+* DE04 6300 D1AA CD00 CD00: bytes DE 04 63 00 D1 AA CD 00 CD 00.
+  PS becomes 04; opcode 6 at address 01 faults; PCR becomes 01; R1 remains
+  00; the HLT handler at address 04 stops execution.
+Use a fresh binary file for each case and RESET before running it.
+
+Recording results
+-----------------
+For each test, record Pass/Fail, JDK version, the program text or binary,
+the observed register/data values, and (for faults) PC and PCR. A screenshot
+of the register list and PC/PCQ panel is useful for any mismatch. Headless
+checks passing does not establish that the GUI refreshes every field at the
+right time; note a display-only mismatch separately from an execution one.

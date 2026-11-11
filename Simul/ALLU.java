@@ -37,6 +37,7 @@ public class ALLU {
 	public DataMemory dMemory;
 
 	public boolean intr, flush, wmem;
+	boolean overflow, returnedFromInterrupt;
 	public int mempos;
 
 	ALLU() {
@@ -52,6 +53,7 @@ public class ALLU {
 	}
 
 	public void reset() {
+		intr = false;
 		wbQ3.clearValue();
 		wbQ3p.clearValue();
 		PCR.clearValue();
@@ -61,6 +63,7 @@ public class ALLU {
 
 	public void clearPipelineState() {
 		wmem = flush = false;
+		overflow = returnedFromInterrupt = false;
 		mempos = 0;
 		rldi.clearQueue();
 		xQueue.clearQueue();
@@ -98,14 +101,19 @@ public class ALLU {
 	public void exMux() {
 		if((rA != null)&&(rB != null)&&(rFile != null)&&(exSelector != null)&&(selectA != null)&&(selectB != null)) {
 			wmem = flush = false;
+			overflow = returnedFromInterrupt = false;
 			rldi.pushQueue(new DmnByte(selectA.intValue()*16 + selectB.intValue()));
 			int ex = exSelector.intValue();
 			switch (ex) {
 			case 0x00 : { // ADD
+			                 int result = rA.intValue2Complement() + rB.intValue2Complement();
+			                 overflow = result < -128 || result > 127;
 			                 xReg.setValue((rA.add2Complement(rB)).intValue());
 			            }
 							break;
 			case 0x01 : { // SUB
+			                 int result = rA.intValue2Complement() - rB.intValue2Complement();
+			                 overflow = result < -128 || result > 127;
 			                 xReg.setValue((rA.sub2Complement(rB)).intValue());
 			            }
 							break;
@@ -118,18 +126,19 @@ public class ALLU {
 			            }
 							break;
 			case 0x04 : { // NOT
-			                 xReg.setValue(Math.abs(~rA.intValue()));
+			                 xReg.setValue((~rA.intValue()) & 0xff);
 			            }
 							break;
 			case 0x05 : { // SHT
-								  int tmp = rA.intValue();
-								  int desp = rA.intValue2Complement();
-								  if (desp < 0) 
-			                 	xReg.setValue(tmp << Math.abs(desp));
-								  else
-			                 	xReg.setValue(tmp >> Math.abs(desp));
-
-			                 xReg.setValue(rA.intValue() << rB.intValue());
+				// Thesis: both directions. The original dead branch used
+				// negative counts for left and nonnegative for right.
+				int count = rB.intValue2Complement();
+				if(count <= -8 || count >= 8)
+					xReg.clearValue();
+				else if(count < 0)
+					xReg.setValue((rA.intValue() << -count) & 0xff);
+				else
+					xReg.setValue(rA.intValue() >>> count);
 			            }
 							break;
 			case 0x06 : { // <Reservado>
@@ -149,7 +158,7 @@ public class ALLU {
 			            }
 							break;
 			case 0x09 : { // NTST
-								  if(rA.lt2Complement(rB))
+								  if(rA.intValue2Complement() <= rB.intValue2Complement())
 								  	rFile.writeMemory(new DmnByte(255),Simulator.CNDBT);
 								  else
 								  	rFile.writeMemory(new DmnByte(0),Simulator.CNDBT);
@@ -203,6 +212,7 @@ public class ALLU {
 		selectA = sa;
 		selectB = sb;
 		wmem = flush = false;
+		overflow = returnedFromInterrupt = false;
 		mempos = 0;
 		if((selectA != null)&&(selectB != null))
 			rldi.pushQueue(new DmnByte(selectA.intValue()*16 + selectB.intValue()));
@@ -223,7 +233,7 @@ public class ALLU {
 		}
 		else if ((wbq == 0x0b) || ((wbq == 0x0a)&&(rFile.readMemory(Simulator.CNDBT).intValue() != 0))) {
 			pc.setValue(xReg.intValue());
-			rFile.readMemory(Simulator.CNDBT).clearValue();
+			returnedFromInterrupt = wbq == 0x0b;
 			flush = true;
 		}
 		else {

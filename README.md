@@ -2,7 +2,7 @@
 
 DMNSimulator is the Java simulator of Professor Dr. Gerard Paez's academic DMN 17N78 computer architecture.
 
-This branch is now aimed at building and testing the code on a modern JDK while preserving the historical structure of the project. The original preserved legacy state belongs to the `LegacyCode` branch of this repository.
+This branch builds on a modern JDK and now follows the thesis for processor semantics where it states a rule. The original preserved executable belongs to the `LegacyCode` branch. See `00-Doc/ThesisConformanceChanges.txt` for the changes and unresolved interpretations.
 
 ## Current Status
 
@@ -76,7 +76,7 @@ Available root targets:
 - `make exec`: run the desktop simulator with `java -cp build/classes SimDMN`.
 - `make clean`: remove the generated `build/` directory.
 - `make sources`: print the Java source file list used by the build.
-- `make check`: run headless characterization checks, including the loop regression.
+- `make check`: run the headless preservation, loop, and thesis conformance checks.
 - `make trace ARGS='simpleSum.asm 32'`: print cycle, instruction, pipeline, forwarding, and changed register state.
 - `make legacy-clean`: remove checked-in and generated `.class` files from the working tree.
 
@@ -222,9 +222,13 @@ Current limitation:
 
 `Simul.PreservationChecks` checks representative instruction encodings, the zero register, memory width, snapshot isolation, reset behavior, and the existing loop regression. It is a starting baseline, not an exhaustive ISA conformance suite. The historical reference is `LegacyCode` (`242666797bc79f67275af515598f6ff4b3221c67`); the implementation baseline for this work was `4a0a0d7e39d4f7f96ccdd936bbaa4b5e0775e98f` with pre-existing local edits.
 
+`Simul.ThesisChecks` checks the thesis-directed execution changes, including signed arithmetic boundaries and fault handling. The shift-count convention and some interrupt details remain provisional; they are documented in `00-Doc/ThesisConformanceChanges.txt`.
+
+For manual desktop validation, follow `00-Doc/GUIThesisTestChecklist.txt`, which includes assembler-ready programs and expected GUI results.
+
 `Simulator.snapshot()` returns a detached view of registers, data memory, queue contents, validity, dependency forwarding, and the most recent fetch. `Simul.TraceRunner` accepts an optional assembly file and maximum cycle count; it normalizes line endings before assembly. The trace reports observed simulator state and does not claim additional hardware timing semantics. The snapshot API does not replace the historical public mutable fields yet.
 
-The desktop applet path remains archival. Semantic questions such as signed overflow, shift direction, interrupt timing, and reset retention require comparison with `00-Doc/DMNSIM.pdf` and the preserved branch before changing execution logic.
+The desktop applet path remains archival. Consult `00-Doc/DMNSIM.pdf`, `00-Doc/ISAAndTimingComparison.txt`, and the preserved branch when reviewing behavior that the thesis leaves unspecified.
 
 ## Legacy Reference
 

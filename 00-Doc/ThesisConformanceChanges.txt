@@ -1,0 +1,63 @@
+DMN17N78 — Thesis-directed execution changes
+==============================================
+Date: 2026-11-11
+
+Purpose
+-------
+The user selected the thesis as the target for this development branch. The
+historical executable remains available on the LegacyCode branch. This note
+records semantic changes from the executable baseline; it does not claim that
+the thesis resolves every instruction encoding or pipeline corner case.
+
+Implemented rules
+-----------------
+* NOT now complements all eight data bits (PDF p. 18; ALLU.exMux).
+* NTS performs signed less-than-or-equal comparison, so equal operands set CN
+  to FF (PDF p. 19; ALLU.exMux).
+* JCN and RTI leave CN unchanged; only ZTS and NTS update it during execution
+  (PDF p. 17; ALLU.incrPC and Simulator.illegalInstruction).
+* The signed arithmetic helper now accepts -128 as an 8-bit value. ADD/SUB
+  results outside [-128,127] are marked as overflow and do not write back
+  (PDF pp. 14, 25; Word.setValue2Complement, ALLU.exMux, Simulator.step).
+* Reserved opcodes 6/7 and illegal use of PC/CN become faults. A faulting
+  instruction has no register writeback. Faults redirect to PS after the
+  instruction reaches WB and record its fetch address in PCR. Younger
+  instructions are flushed. Requests are masked until RTI redirects to PCR
+  (PDF p. 25; Simulator.step, writeBack, takeFaultInterrupt, intrAck).
+* Both C000 (the HLT diagram) and CD00 (the historical assembler output) set
+  HA to FF. The assembler still emits CD00. RTI accepts the existing B000
+  encoding; its destination field is ignored (PDF pp. 19-20).
+
+Explicit interpretations where the thesis is incomplete
+--------------------------------------------------------
+* SHT uses Rs1 as the data and interprets Rs2 as a signed 8-bit count. A
+  negative count shifts left; a nonnegative count shifts logically right;
+  counts with absolute value >= 8 yield zero. The sign convention comes from
+  the original but previously overwritten directional branch in ALLU.exMux.
+  The thesis says "both directions" but gives no direction encoding or rule
+  for shifted-out bits (PDF pp. 17-18). This convention remains provisional.
+* Ordinary arithmetic, logic, LDI, and LDR may not target CN or PC. Ordinary
+  operand selectors may not read CN or PC. ZTS/NTS and JCN retain their
+  architectural access to CN, and JCN/RTI retain their control of PC. Writes
+  to R0 remain ignored. These are interpretations of the register prose on
+  PDF pp. 17 and 25, which is not a full legality matrix.
+* The PDF does not specify a register result for an overflowing ADD/SUB.
+  The simulator suppresses writeback and routes the interrupt; the ALU's
+  transient zero remains an internal implementation detail.
+* The PDF does not specify what to do with another internal fault while an
+  interrupt handler runs. Further requests are masked; a faulting instruction
+  is still suppressed. Precise exception ordering in that case is unresolved.
+
+Verification and remaining work
+-------------------------------
+Simul.ThesisChecks exercises NOT, both SHT directions, NTS equality, CN
+retention, -128, illegal opcode and CN use, overflow, HLT's diagram word,
+external interrupt masking, and RTI. Simul.PreservationChecks and
+Simul.LoopRegression remain available for unaffected behavior. Run
+`make check` (or `make check BUILD_DIR=/tmp/dmn-build` if the checkout is
+read-only from WSL).
+
+This is a source-level implementation and focused headless verification.
+The original PDF does not define every cycle's result or all illegal operand
+forms. Desktop GUI behavior and a broader ISA/timing matrix still need review.
+Use 00-Doc/GUIThesisTestChecklist.txt for the manual desktop review.

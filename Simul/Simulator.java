@@ -43,6 +43,13 @@ public class Simulator {
 	public boolean [] pcState = new boolean[4];
 	private boolean [] exValid = new boolean[2];
 	private boolean [] wbValid = new boolean[3];
+	// Decode faults travel with the instruction to EX and WB.
+	private boolean [] illegalEx = new boolean[2];
+	private boolean [] faultWb = new boolean[3];
+	// Exact fetch addresses avoid ambiguity after a branch or pipeline flush.
+	private int [] wbAddresses = new int[3];
+	private int [] wbOpcodes = new int[3];
+	private boolean interruptActive;
 	public boolean wmem;
 	public int mempos;
 	private ByteQueue rldi;
@@ -73,6 +80,9 @@ public class Simulator {
 	}
 
 	public synchronized void intrAck(){
+		if(interruptActive)
+			return;
+		interruptActive = true;
 		boolean flag = true;
 		alu.intr = true;
 		int i = 4;
@@ -92,6 +102,7 @@ public class Simulator {
 		lastFetchAddress = 0;
 		lastInstruction = 0;
 		lastCycleFlush = false;
+		interruptActive = false;
 		lInst.clearValue();
 		hInst.clearValue();
 		pcQueue.clearQueue();
@@ -118,6 +129,15 @@ public class Simulator {
 	}
 
 	private void pushQueues() {
+		boolean illegal = illegalInstruction(lastInstruction);
+		pushValidity(illegalEx, illegal);
+		pushValidity(faultWb, illegal);
+		for(int i = 2; i > 0; i--) {
+			wbAddresses[i] = wbAddresses[i-1];
+			wbOpcodes[i] = wbOpcodes[i-1];
+		}
+		wbAddresses[0] = lastFetchAddress;
+		wbOpcodes[0] = lastInstruction >>> 12;
 		if(wbValid[wbValid.length - 1])
 			wb4.setValue(wbQueue.seeTopQueue().intValue());
 		else
@@ -130,8 +150,13 @@ public class Simulator {
 
 	private void writeBack() {
 		int topWb = wbQueue.seeTopQueue().intValue();
-		if(wbValid[wbValid.length - 1] && (topWb != 15))
-			rFile.writeMemory(xReg,topWb);
+		int opcode = wbOpcodes[wbOpcodes.length - 1];
+		if(wbValid[wbValid.length - 1] && !faultWb[faultWb.length - 1]) {
+			if(opcode == 0x0c)
+				rFile.writeMemory(xReg,HAREG);
+			else if((opcode <= 5 || opcode == 0x0d || opcode == 0x0e) && topWb != PCREG)
+				rFile.writeMemory(xReg,topWb);
+		}
 
 		pcQueue.pushQueue(pcReg);
 		pcReg.setValue(rFile.readMemory(PCREG).intValue());
@@ -144,8 +169,8 @@ public class Simulator {
 
 	public synchronized void step() {
 		if(rFile.readMemory(HAREG).intValue() != 255) {
-				cycle++;
-				lastCycleFlush = false;
+			cycle++;
+			lastCycleFlush = false;
 			mempos = alu.mempos;
 			wmem = alu.wmem;
 			this.fetchInstruction();
@@ -158,15 +183,22 @@ public class Simulator {
 				wbValid[wbValid.length - 1],
 				lInst
 			);
-			if(exValid[exValid.length - 1])
+			boolean faultAtWriteback = wbValid[wbValid.length - 1] && faultWb[faultWb.length - 1];
+			if(exValid[exValid.length - 1] && !illegalEx[illegalEx.length - 1] && !faultAtWriteback)
 				this.alu.exMux(depUnit.aReg[1],depUnit.bReg[1],rFile,exQueue.seeTopQueue(),depUnit.sla,depUnit.slb);
 			else
 				this.alu.bubble(rFile,depUnit.sla,depUnit.slb);
+			if(alu.overflow)
+				faultWb[1] = true;
+			if(alu.returnedFromInterrupt)
+				interruptActive = false;
 			this.writeBack();
-				if(alu.flush) {
-					lastCycleFlush = true;
+			if(faultAtWriteback && !interruptActive)
+				takeFaultInterrupt(wbAddresses[wbAddresses.length - 1]);
+			else if(alu.flush) {
+				lastCycleFlush = true;
 				flushQueues();
-				}
+			}
 		}
 	}
 
@@ -194,10 +226,46 @@ public class Simulator {
 		exQueue.clearQueue();
 		clearValidity(wbValid);
 		clearValidity(exValid);
+		clearValidity(illegalEx);
+		clearValidity(faultWb);
 		depUnit.reset();
 		alu.clearPipelineState();
 		wb4.clearValue();
 		resetPCState();
+	}
+
+	private void takeFaultInterrupt(int address) {
+		// Called only after the faulting instruction reaches WB.
+		alu.PCR.setValue(address);
+		int serviceAddress = rFile.readMemory(PSREG).intValue();
+		pcReg.setValue(serviceAddress);
+		rFile.writeMemory(pcReg,PCREG);
+		interruptActive = true;
+		lastCycleFlush = true;
+		flushQueues();
+	}
+
+	private boolean illegalInstruction(int word) {
+		// CN may be written only by tests; PC and CN are not ordinary operands.
+		int opcode = word >>> 12;
+		int destination = (word >>> 8) & 0x0f;
+		int sourceA = (word >>> 4) & 0x0f;
+		int sourceB = word & 0x0f;
+		if(opcode == 6 || opcode == 7)
+			return true;
+		if(opcode <= 5 || opcode == 0x0d || opcode == 0x0e) {
+			if(destination == PCREG || destination == CNDBT)
+				return true;
+		}
+		if(opcode <= 5 && (sourceA == PCREG || sourceA == CNDBT))
+			return true;
+		if((opcode <= 3 || opcode == 5 || opcode == 8 || opcode == 9 || opcode == 0x0f)
+			&& (sourceB == PCREG || sourceB == CNDBT))
+			return true;
+		if((opcode == 8 || opcode == 9 || opcode == 0x0e || opcode == 0x0f)
+			&& (sourceA == PCREG || sourceA == CNDBT))
+			return true;
+		return false;
 	}
 
 	private void pushValidity(boolean[] validQueue, boolean validEntry) {
