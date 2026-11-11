@@ -24,6 +24,7 @@ public final class BasicCCompiler {
 		for(Statement statement : program.statements) statement.emit(generator);
 		generator.source(program.close);
 		generator.instruction("HLT");
+		generator.divisionByZeroHandler();
 		String assembly = generator.result();
 		Assembler assembler = new Assembler();
 		if(assembler.assemble(assembly))
@@ -96,18 +97,40 @@ public final class BasicCCompiler {
 	private static final class Binary implements Expression {
 		final String operator;
 		final Expression left, right;
-		Binary(String operator, Expression left, Expression right) {
+		final Token location;
+		Binary(String operator, Expression left, Expression right, Token location) {
 			this.operator = operator;
 			this.left = left;
 			this.right = right;
+			this.location = location;
 		}
 		public void emit(Generator g, int depth) {
+			if("*".equals(operator) || "/".equals(operator)) {
+				if((left instanceof Literal leftLiteral && leftLiteral.value > 127)
+						|| (right instanceof Literal rightLiteral && rightLiteral.value > 127))
+					throw error(operator + " requires operand values from 0 to 127");
+				if("*".equals(operator) && left instanceof Literal a
+						&& right instanceof Literal b && a.value * b.value > 127)
+					throw error("Multiplication result exceeds 127");
+				if("/".equals(operator) && right instanceof Literal divisor && divisor.value == 0)
+					throw error("Division by zero literal");
+			}
 			int temp = g.temp(depth);
 			left.emit(g, depth + 1);
 			g.write(1, temp);
 			right.emit(g, depth + 1);
 			g.instruction("OR R2,R1,R0");
 			g.read(1, temp);
+			if("*".equals(operator)) {
+				if(right instanceof Literal literal)
+					g.multiplyByConstant(literal.value);
+				else g.multiply();
+				return;
+			}
+			if("/".equals(operator)) {
+				g.divide();
+				return;
+			}
 			String opcode = switch(operator) {
 				case "+" -> "ADD";
 				case "-" -> "SUB";
@@ -116,6 +139,9 @@ public final class BasicCCompiler {
 				default -> throw new IllegalStateException("Unexpected operator: " + operator);
 			};
 			g.instruction(opcode + " R1,R1,R2");
+		}
+		CompileException error(String message) {
+			return new CompileException(message, location.line(), location.column());
 		}
 	}
 
@@ -241,6 +267,7 @@ public final class BasicCCompiler {
 		final int firstTemp;
 		final String[] sourceLines;
 		int instructionCount, nextLabel;
+		String divisionByZeroLabel;
 		Generator(int firstTemp, String[] sourceLines) {
 			this.firstTemp = firstTemp;
 			this.sourceLines = sourceLines;
@@ -284,6 +311,74 @@ public final class BasicCCompiler {
 			// A following ZTS could change that flag before the branch is resolved.
 			instruction("OR R0,R0,R0");
 		}
+		void multiplyByConstant(int multiplier) {
+			if(multiplier == 0) {
+				load(1, 0);
+				return;
+			}
+			if(multiplier == 1) return;
+			instruction("OR R4,R0,R0");
+			for(int bit = 0; bit < 7; bit++) {
+				if((multiplier & (1 << bit)) == 0) continue;
+				if(bit == 0) instruction("OR R5,R1,R0");
+				else {
+					load(8, bit);
+					instruction("SHT R5,R1,R8");
+				}
+				instruction("ADD R4,R4,R5");
+			}
+			instruction("OR R1,R4,R0");
+		}
+		void multiply() {
+			String loop = labelName();
+			String skipAdd = labelName();
+			String done = labelName();
+			instruction("OR R4,R0,R0");   // Accumulated product
+			instruction("OR R5,R1,R0");   // Left operand shifted by each bit
+			load(6, 1);                  // Bit mask
+			load(7, 128);                // Stop after bit 6
+			load(8, 1);                  // Shift count
+			label(loop);
+			instruction("AND R9,R2,R6");
+			instruction("ZTS R9,R0");
+			branch(skipAdd);
+			instruction("ADD R4,R4,R5");
+			label(skipAdd);
+			instruction("SHT R5,R5,R8");
+			instruction("SHT R6,R6,R8");
+			instruction("ZTS R6,R7");
+			branch(done);
+			jump(loop);
+			label(done);
+			instruction("OR R1,R4,R0");
+		}
+		void divide() {
+			String loop = labelName();
+			String done = labelName();
+			if(divisionByZeroLabel == null) divisionByZeroLabel = labelName();
+			instruction("ZTS R2,R0");
+			branch(divisionByZeroLabel);
+			instruction("OR R4,R1,R0");  // Remainder
+			instruction("OR R5,R0,R0");  // Quotient
+			load(6, 1);
+			label(loop);
+			instruction("NTS R4,R2");
+			branch(done);
+			instruction("SUB R4,R4,R2");
+			instruction("ADD R5,R5,R6");
+			jump(loop);
+			label(done);
+			instruction("OR R1,R5,R0");
+		}
+		void divisionByZeroHandler() {
+			if(divisionByZeroLabel == null) return;
+			// Drain the normal HLT before the out-of-line error handler is fetched.
+			instruction("OR R0,R0,R0");
+			instruction("OR R0,R0,R0");
+			label(divisionByZeroLabel);
+			load(1, 255);
+			instruction("HLT");
+		}
 		String result() { return assembly.toString(); }
 	}
 
@@ -320,7 +415,7 @@ public final class BasicCCompiler {
 						&& (Character.isLetterOrDigit(source.charAt(index)) || source.charAt(index) == '_'));
 				} else if(starts("==") || starts("!=")) {
 					advance(); advance();
-				} else if("{}();=+-&|".indexOf(c) >= 0) {
+				} else if("{}();=+-*/&|".indexOf(c) >= 0) {
 					advance();
 				} else throw new CompileException("Unsupported character '" + c + "'", line, column);
 				return new Token(source.substring(start, index), startLine, startColumn);
@@ -459,19 +554,33 @@ public final class BasicCCompiler {
 		}
 		Expression expression() {
 			Expression left = bitwiseAnd();
-			while(accept("|")) left = new Binary("|", left, bitwiseAnd());
+			while(peek("|")) {
+				Token operator = token; next();
+				left = new Binary("|", left, bitwiseAnd(), operator);
+			}
 			return left;
 		}
 		Expression bitwiseAnd() {
 			Expression left = additive();
-			while(accept("&")) left = new Binary("&", left, additive());
+			while(peek("&")) {
+				Token operator = token; next();
+				left = new Binary("&", left, additive(), operator);
+			}
 			return left;
 		}
 		Expression additive() {
-			Expression left = primary();
+			Expression left = multiplicative();
 			while(peek("+") || peek("-")) {
-				String operator = token.text(); next();
-				left = new Binary(operator, left, primary());
+				Token operator = token; next();
+				left = new Binary(operator.text(), left, multiplicative(), operator);
+			}
+			return left;
+		}
+		Expression multiplicative() {
+			Expression left = primary();
+			while(peek("*") || peek("/")) {
+				Token operator = token; next();
+				left = new Binary(operator.text(), left, primary(), operator);
 			}
 			return left;
 		}

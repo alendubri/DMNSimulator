@@ -1,0 +1,194 @@
+Compilador de un subconjunto básico de C para DMN17N78
+=======================================================
+
+Propósito
+---------
+Este compilador escrito en Java traduce un subconjunto deliberadamente
+pequeño de C a ensamblador ordinario de DMN17N78. El paquete Assembler
+existente ensambla el resultado. El compilador no modifica la ISA, el
+simulador ni el ensamblador.
+
+Forma de código fuente admitida
+-------------------------------
+int main(void) {
+    unsigned char count = 3;
+    unsigned char total = 0;
+    while (count != 0) {
+        total = total + count;
+        count = count - 1;
+    }
+    return total;
+}
+
+La lista de parámetros también puede estar vacía: main(). Las variables
+deben declararse al comienzo de main, una por declaración, con inicialización
+opcional. Una variable sin inicializador se pone explícitamente a cero.
+Cada nombre de variable debe ser único en main; no hay ámbitos locales por
+bloque ni ocultación de variables. Las declaraciones y asignaciones solo
+admiten unsigned char. Los literales decimales y los hexadecimales con
+prefijo 0x deben estar entre 0 y 255. Los operadores de expresión admitidos
+son +, -, *, /, &, | y los paréntesis. La multiplicación y la división
+tienen mayor precedencia que la suma y la resta; estas, a su vez, tienen
+mayor precedencia que & y |. Los operadores de igual precedencia se asocian
+de izquierda a derecha. Una condición puede ser una expresión o dos
+expresiones comparadas con == o !=. Una expresión distinta de cero es
+verdadera. Los cuerpos de if/else y while deben llevar llaves. La expresión
+return solo se admite como última sentencia del nivel principal de main.
+Si no hay return, el programa simplemente se detiene. Se admiten comentarios
+// y /* ... */.
+
+Este es un subconjunto educativo de C, no un compilador general de C.
+No admite funciones, parámetros, punteros, arreglos, cadenas, entrada/salida,
+preprocesamiento, biblioteca estándar, otros tipos ni los demás operadores
+de C. La sintaxis no admitida se rechaza indicando línea y columna. El valor
+de return queda en R1 antes de HLT; la ISA no dispone de un código de salida
+para un sistema operativo. Se espera que el programa se ejecute desde el
+estado de reinicio del simulador y se detenga antes de que la memoria de
+instrucciones vuelva al inicio.
+
+Llamadas a funciones y pila
+---------------------------
+El compilador actual solo acepta main(). No se han implementado definiciones
+de funciones, llamadas ni parámetros; por ello se rechaza un ejemplo de C
+que llame a una función auxiliar. La ISA de DMN17N78 no tiene instrucciones
+ordinarias CALL ni RET. RTI utiliza la dirección de retorno de una
+interrupción y no sirve como retorno general de función.
+
+Una futura extensión limitada podría insertar directamente una función
+auxiliar no recursiva en cada lugar donde se llame: sustituiría la llamada
+por el cuerpo de la función y sus argumentos en el ensamblador generado
+para main. Esto no necesita una pila durante la ejecución y conservaría la
+ISA, pero cada llamada copiaría instrucciones y consumiría parte de las
+256 palabras de memoria de instrucciones. Las subrutinas compartidas
+necesitarían direcciones de retorno administradas por software y una
+selección del salto de retorno. La recursión necesitaría además una pila
+implementada por software en los 256 bytes de memoria de datos. Ninguno
+de estos mecanismos forma parte del compilador actual.
+
+Correspondencia con el procesador y límites semánticos
+-------------------------------------------------------
+R1 contiene los resultados de las expresiones, R2 es un registro auxiliar
+para ellas y R3 contiene direcciones de datos. Las variables ocupan bytes
+consecutivos desde la dirección 0 de la memoria de datos. Las expresiones
+anidadas usan bytes adicionales como posiciones temporales. El compilador
+comprueba el límite de 256 palabras de instrucción y 256 bytes de datos.
+El ensamblador generado solo usa instrucciones y etiquetas existentes.
+
+ADD y SUB siguen la aritmética histórica de 8 bits con signo del simulador:
+ponen el resultado a cero si su valor absoluto alcanza 128. En C, la
+aritmética de unsigned char normalmente conservaría los ocho bits menos
+significativos. Por tanto, + y - son fiables únicamente cuando cada
+resultado intermedio interpretado con signo está entre -127 y 127. El
+compilador no demuestra que los bucles o las expresiones con variables
+respeten ese intervalo; el programador debe mantener los valores dentro
+de él. La igualdad, la desigualdad, AND y OR operan sobre los patrones
+completos de ocho bits. Esta limitación es intencional y no debe
+"corregirse" cambiando la implementación del procesador.
+
+Multiplicación y división
+-------------------------
+El compilador genera la multiplicación con las instrucciones existentes de
+desplazamiento a la izquierda (SHT), AND, ADD y salto. Si el multiplicador
+es un literal, se descompone en sus bits activos; por ejemplo, x * 10 se
+calcula como (x << 3) + (x << 1). Si es una variable, se usa un bucle de
+desplazamiento y suma que examina siete bits. La división usa NTS, SUB,
+ADD y saltos para restar repetidamente el divisor. El resultado es el
+cociente entero y se descarta el resto. Por ejemplo, 43 / 5 da 8. En el
+simulador actual, el resultado de SHT es únicamente un desplazamiento a
+la izquierda; la división no utiliza un desplazamiento a la derecha por
+hardware. Ninguna de las dos operaciones añade instrucciones a la ISA.
+
+El dominio aritmético admitido para * y / es el de operandos no negativos
+entre 0 y 127. Cada producto debe ser <=127; por ello, cada suma parcial
+también debe ser <=127. El divisor debe ser distinto de cero. En tiempo de
+compilación se rechazan los operandos literales mayores que 127, los
+productos mayores que 127 cuando ambos operandos son literales y el
+divisor literal cero. El compilador no comprueba los intervalos de valores
+calculados durante la ejecución; el programa debe mantenerlos dentro de
+estos límites. Si se exceden, el resultado puede ser incorrecto: ADD/SUB
+ponen a cero los resultados que alcanzan el límite con signo, SHT puede
+poner a cero un resultado que no cabe en un byte y NTS compara con signo.
+Si el divisor vale cero durante la ejecución, se salta a una rutina de
+detención compartida que pone R1 en FF antes de HLT; no se produce cociente.
+C deja indefinida la división por cero; este compilador define dicha
+detención para facilitar el diagnóstico.
+
+Cada rutina aritmética generada consume palabras de instrucción y ciclos.
+Las expresiones grandes pueden alcanzar el límite de 256 palabras del
+programa, que el compilador comprueba.
+
+El simulador consulta el indicador CN en vivo un ciclo de ejecución después
+de JCN. El compilador emite OR R0,R0,R0 después de cada JCN para impedir
+que un ZTS posterior cambie CN antes de resolverse el salto. R0 permanece
+en cero.
+
+Compilación y uso
+-----------------
+Compile con el Makefile del proyecto o con Maven en Java 21 o posterior:
+
+    make
+    java -cp build/classes BasicC.BasicCCompilerMain BasicC/examples/sum.c sum.asm
+    java -cp build/classes Simul.TraceRunner sum.asm 256
+
+Si se omite la ruta de salida, BasicCCompilerMain escribe el ensamblador
+en la salida estándar. En la interfaz gráfica, pegue o abra el archivo
+.asm generado y ensámblelo con el editor existente. El compilador no
+carga automáticamente el programa en la interfaz gráfica.
+
+Añada -embedSource para colocar cada línea original de C inmediatamente
+antes del grupo de instrucciones ensamblador que genera. Los comentarios
+incluyen el número de línea original de C. Las líneas de control de flujo
+aparecen antes de sus saltos o etiquetas; las llaves de cierre aparecen
+antes del salto de retorno del bucle o de la etiqueta final correspondiente.
+Las líneas en blanco y los comentarios de C se colocan junto al grupo de
+código fuente más cercano. El ensamblador existente omite estos comentarios
+que empiezan con punto y coma; por ello, no ocupan memoria de instrucciones
+y se obtiene el mismo programa binario. Actualmente, al traducir if/else,
+el compilador coloca la rama else antes de la rama then en el ensamblador.
+Los números de línea permiten identificar la correspondencia aunque esos
+bloques aparezcan en un orden diferente al del código C. Una línea de C
+con varias construcciones, como `} else {`, puede aparecer antes de más
+de un grupo de instrucciones ensamblador.
+
+En Windows CMD, desde la raíz del repositorio:
+
+    run-dmnsim.bat --build-only
+    java -cp build\classes BasicC.BasicCCompilerMain -embedSource BasicC\examples\nested_loops.c nested_loops.asm
+    java -cp build\classes Simul.TraceRunner nested_loops.asm 512
+
+Como ejemplo más elaborado, BasicC/examples/fibonacci_checksum.c genera
+ocho valores de Fibonacci, comprueba la paridad dentro del bucle y devuelve
+la suma de dos acumuladores, uno para valores pares y otro para impares.
+Los valores esperados son evenSum = 10, oddSum = 44 y checksum = 54. Se
+necesitan unos 720 ciclos del simulador; aumente el límite al mostrar
+la traza:
+
+    java -cp build/classes BasicC.BasicCCompilerMain BasicC/examples/fibonacci_checksum.c fibonacci.asm
+    java -cp build/classes Simul.TraceRunner fibonacci.asm 1024
+
+Toda la aritmética de este ejemplo permanece dentro del intervalo con signo
+admitido por el simulador.
+
+BasicC/examples/nested_loops.c usa dos bucles while para contar tres grupos
+de dos. Devuelve 6; ambos contadores terminan en cero. Su traza requiere
+unos 423 ciclos del simulador:
+
+    java -cp build/classes BasicC.BasicCCompilerMain BasicC/examples/nested_loops.c nested_loops.asm
+    java -cp build/classes Simul.TraceRunner nested_loops.asm 512
+
+BasicC/examples/multiply_divide.c calcula un producto, un cociente entero
+y un resto reconstruido mediante multiplicación. Devuelve 15 y mantiene
+todos los valores dentro del intervalo admitido:
+
+    java -cp build/classes BasicC.BasicCCompilerMain -embedSource BasicC/examples/multiply_divide.c arithmetic.asm
+    java -cp build/classes Simul.TraceRunner arithmetic.asm 1024
+
+Ejecute las comprobaciones de integración del compilador con:
+
+    make basicc-check
+
+Las comprobaciones ensamblan los programas generados y los ejecutan en el
+simulador. Cubren aritmética, expresiones anidadas, operaciones bit a bit,
+if/else, while, valores de verdad, aceptación por el ensamblador y varios
+diagnósticos. No certifican todos los programas posibles ni todos los casos
+especiales de la segmentación histórica del procesador.

@@ -25,8 +25,10 @@ An uninitialized variable is explicitly set to zero. Variable names are
 unique throughout main; there are no local block scopes or shadowing.
 Declarations and assignments use unsigned char only. Decimal and 0x-prefixed
 hexadecimal literals must be in the range 0..255. The supported expression
-operators are +, -, &, | and parentheses, with additive operators binding
-more tightly than & and |. Conditions are a single expression, or two
+operators are +, -, *, /, &, | and parentheses. Multiplication and division
+bind more tightly than addition and subtraction, which bind more tightly
+than & and |. Operators at the same precedence are left-associative.
+Conditions are a single expression, or two
 expressions compared by == or !=. A nonzero expression is true. if/else and
 while bodies must use braces. A return expression is allowed only as the
 final top-level statement. Without return, the program simply halts.
@@ -70,6 +72,33 @@ The compiler does not prove that range for loops or variable expressions;
 programmers must keep values in range. Equality, inequality, AND, and OR
 operate on the full eight-bit patterns. This limitation is intentional and
 must not be "fixed" by changing the processor implementation.
+
+Multiplication and division
+---------------------------
+The compiler generates multiplication from the existing left-shift (SHT),
+AND, ADD, and branch instructions. A literal multiplier is expanded into
+its set bits; for example, x * 10 is (x << 3) + (x << 1). A variable
+multiplier uses a seven-bit shift-and-add loop. Division uses NTS, SUB,
+ADD, and branches to subtract the divisor repeatedly; the result is the
+integer quotient, with the remainder discarded. For example, 43 / 5 is 8.
+The current simulator's SHT result is a left shift only, so division does
+not use a hardware right shift. Neither operation adds an ISA instruction.
+
+The supported arithmetic domain for * and / is nonnegative operands 0..127.
+Every multiplication result must remain <=127; each intermediate partial
+sum must therefore also remain <=127. Division requires a nonzero divisor.
+Literal operands above 127, products above 127 when both operands are
+literals, and a literal zero divisor are rejected at compile time. The
+compiler does not prove ranges for values computed at runtime; programs
+must keep them within these bounds. Exceeding them
+can produce an incorrect result because historical ADD/SUB clear at the
+signed boundary, SHT can clear an out-of-byte result, and NTS compares as
+signed. A runtime zero divisor branches to a shared halt handler that
+sets R1 to FF before HLT; no quotient is produced. C leaves division by
+zero undefined, while this compiler defines the halt for diagnosis.
+
+Each emitted arithmetic routine uses instruction words and cycles. Larger
+expressions may reach the 256-word program limit, which the compiler checks.
 
 The simulator checks JCN against the live CN flag one execute cycle after
 the branch. The compiler emits OR R0,R0,R0 after every JCN, so a following
@@ -120,6 +149,13 @@ two. It returns 6; both loop counters finish at zero. Its trace needs about
 
     java -cp build/classes BasicC.BasicCCompilerMain BasicC/examples/nested_loops.c nested_loops.asm
     java -cp build/classes Simul.TraceRunner nested_loops.asm 512
+
+BasicC/examples/multiply_divide.c computes a product, a truncated quotient,
+and a remainder reconstructed with multiplication. It returns 15 and keeps
+all values in the supported range:
+
+    java -cp build/classes BasicC.BasicCCompilerMain -embedSource BasicC/examples/multiply_divide.c arithmetic.asm
+    java -cp build/classes Simul.TraceRunner arithmetic.asm 1024
 
 Run the compiler's integration checks with:
 

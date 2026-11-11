@@ -32,6 +32,31 @@ public final class BasicCCompilerChecks {
 		checkProgram("int main() { unsigned char _x = 0; unsigned char y;"
 			+ " /* signed result -1 is representable */ y = _x - 1;"
 			+ " if (y != 0) { y = y | 0; } return y; }", 255, 1);
+		checkExpression("2 + 3 * 4", 14);
+		checkExpression("(2 + 3) * 4", 20);
+		checkExpression("7 * 10", 70);
+		checkExpression("7 * 6 / 5", 8);
+		checkExpression("43 / 5", 8);
+		checkExpression("0 / 5", 0);
+		checkExpression("127 / 1", 127);
+		checkExpression("127 * 1", 127);
+		checkExpression("42 * 3", 126);
+		checkExpression("5 * 0", 0);
+		checkProgram("int main() { unsigned char a = 7; unsigned char b = 10;"
+			+ " unsigned char result = a * b; return result; }", 70, 2);
+		checkProgram("int main() { unsigned char a = 1; unsigned char b = 127;"
+			+ " unsigned char result = a * b; return result; }", 127, 2);
+		checkProgram("int main() { unsigned char a = 43; unsigned char b = 5;"
+			+ " unsigned char result = a / b; return result; }", 8, 2);
+		ExecutionSnapshot arithmetic = checkProgram(
+			Files.readString(Path.of("BasicC/examples/multiply_divide.c")), 15, 6);
+		checkData(arithmetic, 2, 70); // product
+		checkData(arithmetic, 4, 11); // quotient
+		checkData(arithmetic, 5, 4);  // remainder
+		ExecutionSnapshot zeroDivisor = runProgram("int main() { unsigned char divisor = 0;"
+			+ " unsigned char result = 7 / divisor; return result; }");
+		if(zeroDivisor.register(1) != 255 || zeroDivisor.data(1) != 0)
+			throw new AssertionError("Division by zero must halt with R1=FF before assignment");
 		ExecutionSnapshot fibonacci = checkProgram(
 			Files.readString(Path.of("BasicC/examples/fibonacci_checksum.c")), 54, 6);
 		checkData(fibonacci, 0, 0);   // loop count
@@ -48,7 +73,12 @@ public final class BasicCCompilerChecks {
 		checkFailure("int main() { x = 1; }", "Unknown variable");
 		checkFailure("int main() { unsigned char x; unsigned char x; }", "Duplicate variable");
 		checkFailure("int main() { unsigned char x = x; }", "Unknown variable");
-		checkFailure("int main() { unsigned char x; x = 1 * 2; }", "Unsupported character");
+		checkFailure("int main() { unsigned char x; x = 1 % 2; }", "Unsupported character");
+		checkRejection("int main() { unsigned char x = 20 * 10; }",
+			"Multiplication result exceeds 127");
+		checkRejection("int main() { unsigned char x = 200 * 1; }",
+			"requires operand values from 0 to 127");
+		checkRejection("int main() { unsigned char x = 7 / 0; }", "Division by zero literal");
 		checkFailure("int main() { unsigned char x; return x; x = 1; }",
 			"return must be the final statement");
 		checkFailure("int main() { unsigned char x; if (x) { return x; } }",
@@ -66,22 +96,32 @@ public final class BasicCCompilerChecks {
 		System.out.println("BasicCCompilerChecks passed.");
 	}
 
+	private static void checkExpression(String expression, int expectedReturn) {
+		checkProgram("int main() { unsigned char result = " + expression
+			+ "; return result; }", expectedReturn, 0);
+	}
+
 	private static ExecutionSnapshot checkProgram(String source, int expectedReturn, int variableAddress) {
+		ExecutionSnapshot snapshot = runProgram(source);
+		if(snapshot.register(1) != expectedReturn)
+			throw new AssertionError("Expected R1=" + expectedReturn + " got " + snapshot.register(1)
+				+ " after " + snapshot.cycle() + " cycles");
+		if(snapshot.data(variableAddress) != expectedReturn)
+			throw new AssertionError("Expected M[" + variableAddress + "]=" + expectedReturn
+				+ " got " + snapshot.data(variableAddress));
+		return snapshot;
+	}
+
+	private static ExecutionSnapshot runProgram(String source) {
 		String assembly = new BasicCCompiler().compile(source);
 		Assembler assembler = new Assembler();
 		if(assembler.assemble(assembly))
 			throw new AssertionError("Assembly failed: " + String.join("; ", assembler.errMsgArray()));
 		Simulator simulator = new Simulator();
 		assembler.putOnMemory(simulator.iMemory);
-		for(int cycle = 0; cycle < 2048 && !simulator.snapshot().halted(); cycle++) simulator.step();
+		for(int cycle = 0; cycle < 4096 && !simulator.snapshot().halted(); cycle++) simulator.step();
 		ExecutionSnapshot snapshot = simulator.snapshot();
 		if(!snapshot.halted()) throw new AssertionError("Program failed to halt:\n" + assembly);
-		if(snapshot.register(1) != expectedReturn)
-			throw new AssertionError("Expected R1=" + expectedReturn + " got " + snapshot.register(1)
-				+ " after " + snapshot.cycle() + " cycles:\n" + assembly);
-		if(snapshot.data(variableAddress) != expectedReturn)
-			throw new AssertionError("Expected M[" + variableAddress + "]=" + expectedReturn
-				+ " got " + snapshot.data(variableAddress) + ":\n" + assembly);
 		return snapshot;
 	}
 
@@ -132,6 +172,15 @@ public final class BasicCCompilerChecks {
 			new BasicCCompiler().compile(source);
 			throw new AssertionError("Expected compiler failure: " + source);
 		} catch(BasicCCompiler.CompileException exception) {
+			if(!exception.getMessage().contains(message)) throw new AssertionError(exception);
+		}
+	}
+
+	private static void checkRejection(String source, String message) {
+		try {
+			new BasicCCompiler().compile(source);
+			throw new AssertionError("Expected compiler rejection: " + source);
+		} catch(IllegalArgumentException exception) {
 			if(!exception.getMessage().contains(message)) throw new AssertionError(exception);
 		}
 	}
